@@ -1,0 +1,7 @@
+# Never commit secrets: the Anthropic key lives in Wrangler secrets / worker/.dev.vars
+.dev.vars
+
+# Downloaded or generated, not source
+node_modules/
+.wrangler/
+chromedriver.exe
