@@ -4513,12 +4513,14 @@
         .upcoming-empty { font-size: 0.8rem; color: var(--text-tertiary); padding: 0.5rem 0; }
     </style>
     <!-- PWA Configuration -->
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#0a0a0a">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Pace">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Cdefs%3E%3ClinearGradient id='grad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%236366f1;stop-opacity:1'/%3E%3Cstop offset='100%25' style='stop-color:%238b5cf6;stop-opacity:1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='192' height='192' fill='%230a0e27'/%3E%3Cpath d='M96 40 L140 76 L140 140 L96 176 L52 140 L52 76 Z' fill='url(%23grad)' opacity='0.2'/%3E%3Cpath d='M96 60 L120 80 L120 120 L96 140 L72 120 L72 80 Z' fill='none' stroke='url(%23grad)' stroke-width='3'/%3E%3Ccircle cx='96' cy='96' r='8' fill='%236366f1'/%3E%3C/svg%3E">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <!-- iOS ignores SVG touch icons, so this has to be a PNG -->
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
 <!-- 
 SERVICE WORKER SETUP (Optional - for PWA offline support)

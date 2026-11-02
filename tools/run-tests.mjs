@@ -39,6 +39,7 @@ results.push(await run('Core checks (faked Wednesday, AI routing, AI batch via p
   ['--fake-date', '2026-11-04T12:00:00', '--routing', '--ai', 'add a 15 min break after each meeting']));
 results.push(await run('Core checks (real date)', 'check.mjs', []));
 results.push(await run('Everyday-flow audit, desktop', 'audit.mjs', []));
+results.push(await run('Installable as an app (manifest, icons, service worker)', 'installable.mjs', []));
 if (!quick) {
   results.push(await run('Everyday-flow audit, phone width', 'audit.mjs', ['--mobile']));
   results.push(await run('Offline + badges', 'offline.mjs', []));

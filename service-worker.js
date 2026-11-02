@@ -4,7 +4,10 @@
 const CACHE_NAME = 'pace-v2';
 const urlsToCache = [
   './',
-  './index.html'
+  './index.html',
+  './manifest.json',
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 // Install event - cache files
