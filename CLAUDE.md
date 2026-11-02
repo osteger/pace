@@ -37,11 +37,17 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 - Event form: one Repeat select (`eventRepeatMode`: once / weekly / daily). "Daily" creates 7 weekly events. Quick Add: "tomorrow"/"today"/bare weekday → one-off; "every monday"/"mondays"/"weekly" → weekly.
 - Date-dependent bugs hide on the day you test. When touching anything date-related, also test with a faked date (e.g. a Wednesday).
 
+- "First job at 25" fixes (Nov 2026):
+  - Quick Add is `parseQuickAddText(input, now)`, a pure function (no DOM; call it from the console to test). It cuts each recognised phrase out of the text and what's left is the title. Handles day lists/ranges ("mon wed fri", "mon-fri"), "tonight/tmrw/noon/after work", "next/this <day>", "in 2 hours", "Nov 12"/"11/12", "on the 1st", "monthly", "every other tuesday", ranges and durations. After adding, a toast says what it understood (`describeQuickAdd`) with Undo; a one-off landing in another week jumps the view there. Add new phrasing to the `first job: Quick Add understands real phrasing` audit step.
+  - Event kinds in `occursOn`: `date` (one-off), `monthDay` (monthly), `repeatEvery: 2` + `anchor` (every other week), else weekly on `day`. `eventsInWeek` is "any day of the week matches occursOn".
+  - Category `family` is shown as "Family & Friends" (drinks, brunch, concerts, parties all land there). Never match category by label text (it broke once): use the class or the onclick attribute.
+  - Weekly targets are editable on the Goals page (`paceTargets` in localStorage, `saveTargets()`); events titled "Sleep…"/"Bedtime…" don't count toward balance (`NOT_COUNTED_RE`).
+  - Week grid: one row per hour (`gridHourRange`). `.week-grid` MUST keep `flex-shrink: 0`: it's a flex child of `.main-calendar`, and shrinking squeezed rows under their events so the second event in a busy hour was clipped. Today's column is highlighted.
+  - Phones (≤768px) get `getWeekAgendaHTML()`: a day-by-day list instead of the grid. It has no bulk-edit bar (`toggleBulkEdit` says so and returns) and carries a hidden `#quickAddInput` that the mobile Add button feeds. The mobile Quick Add has an Add button.
 - "Dad of 3" fixes (rebuilt Nov 2026 from a cloud-chat review; its commit never reached GitHub):
-  - Week view rows are 3-hour blocks from 6 AM and start earlier (3 AM, 12 AM) when an event that week begins before 6; day view widens the same way. Events in a row sort by time. Grid rows grow with their events; on phones the grid scrolls sideways.
+  - Week and day views run from 6 AM to 10 PM and widen when an event starts outside that. Events in a cell sort by time.
   - Habits render into BOTH `#habitsList` (desktop sidebar) and `#habitTrackerContent` (the ✓ panel, the only one on phones). So never address habit elements by id; `toggleHabitCategory(this)` uses the clicked header.
   - Repeat select has once / weekly / weekdays (Mon–Fri) / daily; durations go to 12h; default duration 1h. Editing one day of a series offers "Also change the other N days" (`seriesSiblings()`: same title, time, length, category, no date).
-  - Quick Add (`parseQuickAddSimple`) handles "every weekday/day/morning/evening" itself (no AI), time ranges ("8am to 5pm", "6-7:30pm"), typed dates ("Nov 12", "11/12"), and checks family words before fitness/work ("kids swim lessons", "call mom").
   - `generateSmartNotifications()` is now an every-minute reminder: bell + toast (+ system notification if allowed) once per event per day, within 30 min of start. Only runs while Pace is open.
   - Toasts: max 3 on screen, unique ids. `updateNotificationCount` is null-safe because the bell only exists in week view.
 
@@ -62,7 +68,7 @@ Not verified: real-key AI calls, the deployed site, iOS Safari specifically.
 3. Several features use `alert()`/`confirm()`; move to toasts/modals.
 4. Planned: user accounts + partner/family sharing (Firebase or Supabase). Sharing UI is already built but hidden (see layout notes).
 5. Reminders only fire while Pace is open in a tab; with the app closed they'd need a backend (push).
-8. UX wishlist from a hands-on review (Nov 2026): Quick Add into another week gives no visible feedback (toast should name the date and offer "Show"); "Mark as Completed" on a repeating event marks every week (store completion per date); habits are buried at the bottom of the right panel; AI errors show raw "Failed to fetch"; event menu doesn't say whether it repeats; no today highlight in week view; week-view blocks don't scale with event length.
+8. UX wishlist from hands-on reviews (Nov 2026): "Mark as Completed" on a repeating event marks every week (store completion per date); habits are buried at the bottom of the right panel; AI errors show raw "Failed to fetch"; event menu doesn't say whether it repeats; week-view blocks don't scale with event length; no overlap/double-booking warning (Quick Add will happily add a second "Gym" at the same time); bulk edit is desktop-only.
 6. Editing one day of an "every day" event only edits that day (they're 7 separate weekly events).
 7. The file is too large to maintain safely as one blob; consider splitting into `styles.css` / `app.js` modules.
 

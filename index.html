@@ -4514,15 +4514,46 @@
 
         .upcoming-empty { font-size: 0.8rem; color: var(--text-tertiary); padding: 0.5rem 0; }
 
-        /* Week grid: rows grow with their events instead of squeezing to the window */
-        .week-grid { grid-auto-rows: minmax(80px, auto); }
-        .week-grid > .day-header, .week-grid > .time-label:first-child { grid-row: auto; }
-        @media (max-width: 768px) {
-            .week-grid {
-                grid-template-columns: 44px repeat(7, minmax(88px, 1fr));
-                overflow-x: auto;
-            }
+        /* Week grid: one row per hour. It is a flex child of .main-calendar, which used to shrink it to the window
+           and squeeze rows under their events (the second event in a busy hour was cut off). Let it be as tall as it needs. */
+        .week-grid { flex-shrink: 0; grid-auto-rows: minmax(52px, auto); }
+        .week-grid .day-cell { min-height: 52px; }
+        .week-grid .time-label { padding: 0.6rem 0.75rem; }
+        .calendar-title { white-space: nowrap; }
+        .calendar-header { gap: 0.75rem; }
+        .calendar-header > div { min-width: 0; }
+        .calendar-header .calendar-controls { flex-shrink: 0; }
+        #quickAddInput { min-width: 0; width: 100%; }
+        /* On narrower desktops the Quick Add box gets its own full-width row instead of being squeezed to nothing */
+        @media (min-width: 769px) and (max-width: 1700px) {
+            .calendar-header { flex-wrap: wrap; }
+            .calendar-header:not(.agenda-header) > div:nth-child(2) { order: 3; flex: 1 1 100% !important; max-width: none !important; margin: 0 !important; }
         }
+        .day-header.today { background: rgba(45, 212, 191, 0.12); }
+        .day-header.today .day-date { color: var(--accent-fitness); font-weight: 600; }
+
+        /* Phone week view: day-by-day agenda */
+        .agenda-header > div:nth-child(2) { display: flex !important; }
+        .week-agenda { display: flex; flex-direction: column; gap: 0.75rem; padding-bottom: 5rem; }
+        .agenda-day { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .agenda-day.today { border-color: var(--accent-fitness); }
+        .agenda-day-header { display: flex; align-items: baseline; gap: 0.6rem; padding: 0.7rem 0.9rem; cursor: pointer; border-bottom: 1px solid var(--border); }
+        .agenda-day-name { font-weight: 600; }
+        .agenda-day-date { color: var(--text-tertiary); font-size: 0.8rem; flex: 1; }
+        .agenda-day.today .agenda-day-date { color: var(--accent-fitness); }
+        .agenda-add { color: var(--text-tertiary); font-size: 1.3rem; line-height: 1; }
+        .agenda-event { display: flex; gap: 0.8rem; align-items: center; padding: 0.65rem 0.9rem; border-left: 4px solid var(--accent-personal); cursor: pointer; }
+        .agenda-event + .agenda-event { border-top: 1px solid var(--border); }
+        .agenda-event.fitness { border-left-color: var(--accent-fitness); }
+        .agenda-event.work { border-left-color: var(--accent-work); }
+        .agenda-event.family { border-left-color: var(--accent-family); }
+        .agenda-time { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; width: 4.6rem; flex-shrink: 0; }
+        .agenda-time span { color: var(--text-tertiary); }
+        .agenda-title { font-size: 0.95rem; }
+        .agenda-repeat { color: var(--text-tertiary); font-size: 0.8rem; }
+        .agenda-empty { padding: 0.7rem 0.9rem; color: var(--text-tertiary); font-size: 0.85rem; }
+        .mobile-quick-add { display: flex; gap: 0.5rem; }
+        .mobile-quick-add button { padding: 0 1rem; background: var(--accent-fitness); border: none; border-radius: 8px; color: var(--bg-primary); font-weight: 600; }
     </style>
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#0a0a0a">
@@ -4591,9 +4622,10 @@ Note: Service Workers only work over HTTPS or on localhost
             <input type="text" 
                    id="mobileQuickAddInput" 
                    placeholder='Quick add: "workout tomorrow 6am"'
-                   style="width: 100%; padding: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;"
+                   style="flex: 1; min-width: 0; padding: 0.75rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 0.9rem;"
                    onkeypress="if(event.key==='Enter') parseMobileQuickAdd()"
             />
+            <button type="button" onclick="parseMobileQuickAdd()">Add</button>
         </div>
 
         <!-- MOBILE DRAWER -->
@@ -4631,7 +4663,7 @@ Note: Service Workers only work over HTTPS or on localhost
                     <div class="nav-item category-item" onclick="filterByCategory('family')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <div class="category-dot has-upcoming" style="background: var(--accent-family);"></div>
-                            <span>Family</span>
+                            <span>Family &amp; Friends</span>
                         </div>
                         <span class="category-hours">0h</span>
                     </div>
@@ -4758,7 +4790,7 @@ Note: Service Workers only work over HTTPS or on localhost
                 <div class="nav-item category-item" onclick="filterByCategory('family')">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="category-dot has-upcoming" style="background: var(--accent-family);"></div>
-                        <span>Family</span>
+                        <span>Family &amp; Friends</span>
                     </div>
                     <span class="category-hours">0h</span>
                 </div>
@@ -5351,7 +5383,7 @@ Note: Service Workers only work over HTTPS or on localhost
                         Work
                     </div>
                     <div class="category-option family" onclick="selectCategory(this, 'family')">
-                        Family
+                        Family &amp; Friends
                     </div>
                     <div class="category-option personal" onclick="selectCategory(this, 'personal')">
                         Personal
@@ -6423,156 +6455,286 @@ function parseQuickAdd() {
 
 // Original simple parser (keep for basic requests)
 
-function parseQuickAddSimple() {
-    try {
-        console.log('parseQuickAddSimple called');
-        const input = document.getElementById('quickAddInput').value.trim();
-        
+// Quick Add text -> event fields. Pure (no DOM): each phrase it recognises is cut out of the text, and what is
+// left over is the title. Returns { title, time, duration, category, days, date, monthDay, repeatEvery, anchor, usedDefaultTime }.
+//   days = weekday numbers (1=Mon..7=Sun) for a repeating event, null for a one-off; date = 'YYYY-MM-DD' for a one-off.
+const QA_DAY = '(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun)';
+const QA_DAY_NUM = { mon: 1, tue: 2, wed: 3, thu: 4, fri: 5, sat: 6, sun: 7 };
+const QA_MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
-    if (!input) return;
-    showLoading('Adding event...');
-    
-    // Simple parsing logic for basic requests
-    const dayMap = {
-        'monday': 1, 'mon': 1,
-        'tuesday': 2, 'tue': 2, 'tues': 2,
-        'wednesday': 3, 'wed': 3,
-        'thursday': 4, 'thu': 4, 'thur': 4, 'thurs': 4,
-        'friday': 5, 'fri': 5,
-        'saturday': 6, 'sat': 6,
-        'sunday': 7, 'sun': 7
+function parseQuickAddText(input, now = new Date()) {
+    let text = ' ' + input.trim() + ' ';
+    // Cut the first match of `re` out of the text and return it
+    const take = re => {
+        const m = text.match(re);
+        if (m) text = text.slice(0, m.index) + ' ' + text.slice(m.index + m[0].length);
+        return m;
     };
-    
-    const lower = input.toLowerCase();
-    const dayPattern = '(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tues?|wed|thu(?:rs?)?|fri|sat|sun)';
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate() + n); return r; };
+    const nextWeekday = (n, from = today) => addDays(from, (n - (from.getDay() || 7) + 7) % 7); // today counts
+    const pad = n => String(n).padStart(2, '0');
+    const dayNum = word => QA_DAY_NUM[word.toLowerCase().slice(0, 3)];
 
-    // Day: whole words only ("wedding" is not Wednesday). Plural ("mondays") or "every"/"weekly" = repeats weekly.
-    const dayWord = lower.match(new RegExp(`\\b${dayPattern}(s)?\\b`));
-    const weekly = /\b(every|weekly)\b/.test(lower) || !!(dayWord && dayWord[2]);
-    const today = new Date();
-    let date = new Date(today);
-    let day = today.getDay() || 7;
+    // ---- Repeats ----
+    let repeat = false, days = null, repeatEvery = 1, monthly = false, defaultTime = null;
+    if (take(new RegExp(`\\b(?:every\\s+(?:other|second)|alternate)\\s+(?=${QA_DAY})`, 'i'))) { repeatEvery = 2; repeat = true; }
+    if (take(/\b(?:biweekly|bi-weekly|fortnightly|every\s+(?:two|2)\s+weeks)\b/i)) { repeatEvery = 2; repeat = true; }
+    if (take(/\b(?:every\s+weekday|weekdays)\b/i)) { days = [1, 2, 3, 4, 5]; repeat = true; }
+    else if (take(/\b(?:every\s+weekend|weekends)\b/i)) { days = [6, 7]; repeat = true; }
+    else {
+        const m = take(/\b(?:every\s+(day|morning|evening|night)|daily|nightly)\b/i);
+        if (m) {
+            days = [1, 2, 3, 4, 5, 6, 7]; repeat = true;
+            const part = (m[1] || (/nightly/i.test(m[0]) ? 'night' : '')).toLowerCase();
+            defaultTime = part === 'morning' ? '07:00' : (part === 'evening' || part === 'night') ? '19:00' : null;
+        }
+    }
+    if (take(/\b(?:every\s+month|monthly)\b/i)) monthly = true;
+    if (take(/\b(?:every|weekly)\b/i)) repeat = true;
 
-    // Typed dates: "Nov 12", "november 12th", "11/12" (a date already past this year means next year)
-    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-    const monthRe = /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/;
-    const monthMatch = lower.match(monthRe);
-    const slashMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\b/);
-    let typedDate = null;
-    if (monthMatch) typedDate = { month: monthNames.indexOf(monthMatch[1].slice(0, 3)), dom: parseInt(monthMatch[2]), text: monthMatch[0] };
-    else if (slashMatch) typedDate = { month: parseInt(slashMatch[1]) - 1, dom: parseInt(slashMatch[2]), text: slashMatch[0] };
-    if (typedDate && !(typedDate.month >= 0 && typedDate.month < 12 && typedDate.dom >= 1 && typedDate.dom <= 31)) typedDate = null;
+    // ---- Dates ----
+    let when = null; // a calendar Date: the day of a one-off, or the first occurrence of a repeating event
+    let monthDay = null;
+    let relativeTime = null;
 
-    // Daily-style repeats are handled here (no AI needed): "every weekday", "every day/morning/evening", "daily"
-    const repeatAll = /\b(every\s+(day|morning|evening|night)|daily)\b/.test(lower);
-    const repeatWeekdays = /\b(every\s+weekday|weekdays)\b/.test(lower);
-
-    if (typedDate) {
-        date = new Date(today.getFullYear(), typedDate.month, typedDate.dom);
-        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        if (date < startOfToday) date = new Date(today.getFullYear() + 1, typedDate.month, typedDate.dom);
-        day = date.getDay() || 7;
-    } else if (/\btomorrow\b/.test(lower)) {
-        date.setDate(today.getDate() + 1);
-        day = date.getDay() || 7;
-    } else if (dayWord) {
-        day = dayMap[dayWord[1]];
-        // Next occurrence of that weekday (today counts)
-        date.setDate(today.getDate() + ((day - (today.getDay() || 7) + 7) % 7));
+    const rel = take(/\bin\s+(\d+(?:\.\d+)?)\s*(minutes?|mins?|hours?|hrs?|h|days?)\b/i);
+    if (rel) {
+        const n = parseFloat(rel[1]), unit = rel[2].toLowerCase();
+        if (unit.startsWith('d')) when = addDays(today, Math.round(n));
+        else {
+            const target = new Date(now.getTime() + n * (unit.startsWith('m') ? 60000 : 3600000));
+            target.setMinutes(Math.ceil(target.getMinutes() / 5) * 5, 0, 0); // next 5 minutes
+            when = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+            relativeTime = `${pad(target.getHours())}:${pad(target.getMinutes())}`;
+        }
     }
 
-    // Time: prefer "6pm" / "6:30am", then "18:30", then "at 6"
-    // A range wins over a single time: "8am to 5pm", "6-7:30pm", "9:00-17:00". The start borrows the end's am/pm if it has none.
-    const rangeRe = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
-    let rangeMatch = input.match(rangeRe);
-    let rangeStart = null, rangeMinutes = null;
-    if (rangeMatch && !(rangeMatch[3] || rangeMatch[6] || rangeMatch[2] || rangeMatch[5])) rangeMatch = null; // "5-10" alone is not a time
-    if (rangeMatch) {
-        const to24 = (h, m, mer) => {
-            h = parseInt(h);
-            if (mer === 'pm' && h < 12) h += 12;
-            if (mer === 'am' && h === 12) h = 0;
-            return h * 60 + parseInt(m || '0');
-        };
-        const endMer = rangeMatch[6]?.toLowerCase();
-        const startMer = rangeMatch[3]?.toLowerCase() || endMer;
-        let start = to24(rangeMatch[1], rangeMatch[2], startMer);
-        const end = to24(rangeMatch[4], rangeMatch[5], endMer);
-        if (!rangeMatch[3] && start > end) start -= 12 * 60; // "11-1pm" starts at 11am, not 11pm
-        if (start >= 0 && end > start && end - start <= 24 * 60) { rangeStart = start; rangeMinutes = end - start; }
-        else rangeMatch = null;
+    // "Nov 12", "november 12th", "11/12" (a date already past this year means next year). Not "may 5pm".
+    let md = take(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b(?!\s*(?:am|pm|:\d))/i);
+    let typed = null;
+    if (md) typed = { month: QA_MONTHS.indexOf(md[1].toLowerCase().slice(0, 3)), dom: parseInt(md[2]) };
+    else if ((md = take(/\b(\d{1,2})\/(\d{1,2})(?:\/\d{2,4})?\b/))) typed = { month: parseInt(md[1]) - 1, dom: parseInt(md[2]) };
+    if (typed && typed.month >= 0 && typed.month < 12 && typed.dom >= 1 && typed.dom <= 31) {
+        let d = new Date(today.getFullYear(), typed.month, typed.dom);
+        if (d < today) d = new Date(today.getFullYear() + 1, typed.month, typed.dom);
+        when = d;
     }
 
-    const timeMatch = rangeMatch ? null : (input.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i)
-        || input.match(/\b(\d{1,2}):(\d{2})\b/)
-        || input.match(/\bat\s+(\d{1,2})\b/i));
-    let time = /\bevery\s+(evening|night)\b/.test(lower) ? '19:00' : /\bevery\s+morning\b/.test(lower) ? '07:00' : '09:00';
-
-    if (rangeStart !== null) {
-        time = `${String(Math.floor(rangeStart / 60)).padStart(2, '0')}:${String(rangeStart % 60).padStart(2, '0')}`;
-    } else if (timeMatch) {
-        let hour = parseInt(timeMatch[1]);
-        const minute = timeMatch[2] || '00';
-        const meridiem = timeMatch[3]?.toLowerCase();
-
-        if (meridiem === 'pm' && hour < 12) hour += 12;
-        if (meridiem === 'am' && hour === 12) hour = 0;
-
-        if (hour <= 23 && Number(minute) <= 59) time = `${String(hour).padStart(2, '0')}:${minute}`;
+    // "on the 1st": the next time that day of the month comes round (monthly with "monthly")
+    const ord = take(/\b(?:on\s+)?the\s+(\d{1,2})(?:st|nd|rd|th)\b/i);
+    if (ord) {
+        const dom = parseInt(ord[1]);
+        let d = new Date(today.getFullYear(), today.getMonth(), dom);
+        if (d < today) d = new Date(today.getFullYear(), today.getMonth() + 1, dom);
+        when = d; monthDay = dom;
     }
 
-    // Duration: "2h", "1.5 hours", "45 min"
-    const hoursMatch = input.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
-    const minsMatch = input.match(/\b(\d+)\s*(?:m|min|mins|minutes)\b/i);
-    const duration = rangeMinutes !== null ? rangeMinutes
-        : hoursMatch ? Math.round(parseFloat(hoursMatch[1]) * 60) : minsMatch ? parseInt(minsMatch[1]) : 60;
+    let tonight = false;
+    if (take(/\b(?:tomorrow|tmrw|tmr|tmw)\b/i)) when = addDays(today, 1);
+    if (take(/\btonight\b/i)) { when = today; tonight = true; }
+    if (take(/\btoday\b/i)) when = today;
 
-    // Extract category. Family words are checked first so "kids swim lessons" and "call mom" don't read as fitness/work.
+    const nextThis = take(new RegExp(`\\b(next|this)\\s+(${QA_DAY})\\b`, 'i'));
+    if (nextThis) {
+        const n = dayNum(nextThis[2]);
+        // "this friday" = the coming one; "next friday" = the one in the following Mon-Sun week
+        const nextMonday = addDays(today, 8 - (today.getDay() || 7));
+        when = nextThis[1].toLowerCase() === 'this' ? nextWeekday(n) : addDays(nextMonday, n - 1);
+    } else if (/\b(?:this\s+)?weekend\b/i.test(text) && !days) {
+        when = nextWeekday(6);
+    }
+
+    // Days of the week: "friday", "mondays", "mon wed fri", "monday and wednesday", "mon-fri"
+    let plural = false;
+    if (!days) {
+        const group = take(new RegExp(`\\b(${QA_DAY}s?(?:\\s*(?:,|/|&|and|-|–|to|through)?\\s*${QA_DAY}s?)*)\\b`, 'i'));
+        if (group) {
+            const tokens = (group[1].match(new RegExp(QA_DAY, 'gi')) || []).map(dayNum);
+            plural = /[a-z]s$/i.test(group[1]) && /(day|tue|wed|thu|fri|sat|sun|mon)s$/i.test(group[1]);
+            if (tokens.length === 2 && /(?:-|–|\bto\b|through)/i.test(group[1])) {
+                days = [];
+                for (let d = tokens[0]; ; d = d % 7 + 1) { days.push(d); if (d === tokens[1] || days.length > 7) break; }
+            } else {
+                days = [...new Set(tokens)];
+            }
+            if (days.length === 1 && !repeat && !plural && repeatEvery === 1) {
+                when = nextWeekday(days[0]); // a single named day is a one-off on its next occurrence
+                days = null;
+            } else if (days.length === 1 && repeatEvery === 1 && !repeat && plural) {
+                repeat = true;
+            }
+            if (days && days.length > 1) repeat = true; // "mon wed fri" means every week
+        }
+    }
+    if (repeat && !days && !monthly && !monthDay) days = [(when || today).getDay() || 7]; // "yoga weekly": weekly on that day
+
+    // ---- Time ----
+    let time = null, usedDefaultTime = false, rangeMinutes = null;
+    const to24 = (h, m, mer) => {
+        h = parseInt(h);
+        if (mer === 'pm' && h < 12) h += 12;
+        if (mer === 'am' && h === 12) h = 0;
+        return h * 60 + parseInt(m || '0');
+    };
+    const fmt = mins => `${pad(Math.floor(mins / 60))}:${pad(mins % 60)}`;
+
+    // A range wins over a single time: "8am to 5pm", "6-7:30pm". The start borrows the end's am/pm if it has none.
+    const range = text.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+    if (range && (range[2] || range[3] || range[5] || range[6])) {
+        const endMer = range[6]?.toLowerCase(), startMer = range[3]?.toLowerCase() || endMer;
+        let start = to24(range[1], range[2], startMer);
+        const end = to24(range[4], range[5], endMer);
+        if (!range[3] && start > end) start -= 12 * 60; // "11-1pm" starts at 11am
+        if (start >= 0 && end > start && end - start <= 24 * 60) {
+            take(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i);
+            time = fmt(start); rangeMinutes = end - start;
+        }
+    }
+    if (!time) {
+        let m;
+        if (take(/\bnoon\b/i)) time = '12:00';
+        else if (take(/\bmidnight\b/i)) time = '00:00';
+        else if ((m = take(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i))) time = fmt(to24(m[1], m[2], m[3].toLowerCase()));
+        else if ((m = take(/\b([01]?\d|2[0-3]):([0-5]\d)\b/))) time = fmt(parseInt(m[1]) * 60 + parseInt(m[2]));
+        else if ((m = take(/\bat\s+(\d{1,2})\b/i))) time = fmt(to24(m[1], 0, ''));
+    }
+    take(/\bat\b(?=\s*$)/i);
+    const afterWork = take(/\bafter\s+work\b/i);
+    const part = take(/\b(?:in\s+the\s+)?(morning|afternoon|evening)\b/i);
+    if (!time) {
+        const lower = text.toLowerCase();
+        time = relativeTime
+            || (afterWork ? '18:00' : null)
+            || (part ? { morning: '08:00', afternoon: '14:00', evening: '19:00' }[part[1].toLowerCase()] : null)
+            || (tonight ? '19:00' : null)
+            || defaultTime
+            || (/\bbreakfast\b/.test(lower) ? '08:00' : /\bbrunch\b/.test(lower) ? '11:00' : /\blunch\b/.test(lower) ? '12:00'
+                : /\bhappy hour\b/.test(lower) ? '17:30' : /\bdinner\b/.test(lower) ? '19:00' : null);
+        if (!time) { time = '09:00'; usedDefaultTime = true; }
+    }
+
+    // ---- Duration ----
+    let duration = rangeMinutes;
+    if (duration === null) {
+        const h = take(/\b(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hours?)\b/i);
+        const mm = take(/\b(\d+)\s*(?:m|min|mins|minutes)\b/i);
+        duration = h ? Math.round(parseFloat(h[1]) * 60) + (mm ? parseInt(mm[1]) : 0) : mm ? parseInt(mm[1]) : 60;
+    }
+
+    // ---- Category: family/friends words first so "kids swim lessons" and "call mom" aren't fitness/work ----
+    const lower = ' ' + text.toLowerCase().replace(/\s+/g, ' ') + ' ';
     let category = 'personal';
-    if (/\b(family|kids?|dinner|date night|mom|dad|grandma|grandpa|grandparents|soccer|practice|lessons?|recital|school|drop-?off|pick-?up|bedtime|homework|dentist|doctor|pediatrician|birthday|playdate|park|wife|husband|son|daughter)\b/.test(lower)) {
+    if (/\b(family|kids?|mom|dad|parents?|grandma|grandpa|grandparents|siblings?|brother|sister|wife|husband|partner|girlfriend|boyfriend|son|daughter|soccer|recital|school|drop-?off|pick-?up|bedtime|homework|playdate)\b/.test(lower)
+        || /\b(dentist|doctor|pediatrician)\b.*\bfor\b/.test(lower)) {
         category = 'family';
-    } else if (/\b(workout|gym|exercise|run|running|yoga|lift|lifting|swim|bike|cycling|hike|stretch|pilates|crossfit)\b/.test(lower)) {
+    } else if (/\b(workout|gym|exercise|run|running|yoga|lift|lifting|swim|swimming|bike|biking|cycling|spin|climb|climbing|boulder|bouldering|hike|hiking|stretch|pilates|crossfit|hiit|boxing|tennis|basketball|pickleball|volleyball|5k|10k|marathon|cardio)\b/.test(lower)) {
         category = 'fitness';
-    } else if (/\b(meeting|work|call|standup|review|office|client|deadline|commute|presentation|1:1)\b/.test(lower)) {
+    } else if (/\b(drinks|happy hour|brunch|dinner|lunch|coffee|party|birthday|wedding|concert|show|festival|movie|movies|game night|board games?|trivia|karaoke|bbq|barbecue|hang(?:ing)? ?out|friends?|date|date night|roommates?|bar|club)\b/.test(lower)
+        && !/\b(meeting|standup|client|review|1:1|team|colleagues?|coworkers?|work)\b/.test(lower)) {
+        category = 'family'; // "Family & Friends" in the UI
+    } else if (/\b(meeting|work|call|standup|review|office|client|deadline|commute|presentation|1:1|sync|interview)\b/.test(lower)) {
         category = 'work';
+    } else if (/\b(?:with|w\/)\s+[a-z]+/i.test(lower)) {
+        category = 'family';
     }
 
-    // Title: what's left after removing the when/how-long words
-    let title = input
-        .replace(rangeMatch ? rangeRe : /$^/, '')
-        .replace(typedDate ? new RegExp(typedDate.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : /$^/, '')
-        .replace(/\bevery\s+(weekday|day|morning|evening|night)\b|\bweekdays\b|\bdaily\b/gi, '')
-        .replace(/\bat\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/gi, '')
-        .replace(new RegExp(`\\b(on|every)\\s+(?=${dayPattern})`, 'gi'), '')
-        .replace(new RegExp(`\\b${dayPattern}s?\\b`, 'gi'), '')
-        .replace(/\b(today|tomorrow|weekly)\b/gi, '')
-        .replace(/\b\d{1,2}(?::\d{2})?\s*(?:am|pm)\b/gi, '')
-        .replace(/\b\d{1,2}:\d{2}\b/g, '')
-        .replace(/\b\d+(?:\.\d+)?\s*(?:h|hr|hrs|hour|hours|m|min|mins|minutes)\b/gi, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-
+    // ---- Title: what's left, minus dangling connectors ----
+    let title = text.replace(/[,;]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const edge = /^(?:on|at|by|from|until|till|to|in|every|each|the|for|a|an)\s+|\s+(?:on|at|by|from|until|till|to|in|every|each|the|for|a|an|-|–)$/i;
+    for (let i = 0; i < 4 && edge.test(title); i++) title = title.replace(edge, '').trim();
+    title = title.replace(/^[-–]+|[-–]+$/g, '').trim();
     if (!title) title = 'New Event';
     title = title.charAt(0).toUpperCase() + title.slice(1);
 
-    // Create event(s): "every weekday"/"every day" make one weekly event per day; otherwise one-off on that
-    // date unless it was phrased as repeating
-    const days = repeatAll ? [1, 2, 3, 4, 5, 6, 7] : repeatWeekdays ? [1, 2, 3, 4, 5] : [day];
-    let nextId = scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1;
-    days.forEach(d => {
-        const newEvent = { id: nextId++, title: title, day: d, time: time, duration: duration, category: category };
-        if (!weekly && days.length === 1) newEvent.date = toDateKey(date);
-        scheduledEvents.push(newEvent);
-    });
-    saveToLocalStorage();
-    renderWeekView();
-    updateBalanceDisplay();
+    // ---- Result ----
+    const result = { title, time, duration, category, days: null, date: null, monthDay: null, repeatEvery: 1, anchor: null, usedDefaultTime };
+    if (monthly) {
+        result.monthDay = monthDay || (when || today).getDate();
+        when = when || today;
+    } else if (days) {
+        result.days = days;
+        if (repeatEvery > 1) {
+            result.repeatEvery = repeatEvery;
+            result.anchor = toDateKey(nextWeekday(days[0], when || today));
+        }
+    } else {
+        when = when || today;
+    }
+    if (!result.days) result.date = toDateKey(when);
+    result.firstDate = toDateKey(result.days ? nextWeekday(result.days[0], when || today) : when);
+    return result;
+}
 
-    hideLoading();
-    showToast('Event Added', days.length > 1 ? `${title} (${days.length} days a week)` : title, 'success');
-    document.getElementById('quickAddInput').value = '';
+// Words for the confirmation toast: what Quick Add understood
+function describeQuickAdd(p) {
+    const names = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
+    const dayName = n => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][n - 1];
+    let whenText;
+    if (p.monthDay) whenText = `monthly on the ${p.monthDay}${['th', 'st', 'nd', 'rd'][(p.monthDay % 10 < 4 && ![11, 12, 13].includes(p.monthDay % 100)) ? p.monthDay % 10 : 0]}`;
+    else if (p.days) {
+        const list = p.days.length === 7 ? 'every day' : p.days.join() === '1,2,3,4,5' ? 'Mon–Fri' : p.days.map(dayName).join(', ');
+        whenText = p.repeatEvery > 1 ? `every other ${list}` : (p.days.length === 7 ? list : `${list} weekly`);
+    } else {
+        whenText = new Date(p.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    const end = formatTime12Short(addMinutes(p.time, p.duration));
+    const timeText = p.usedDefaultTime ? `${formatTime12Short(p.time)} (no time given)` : `${formatTime12Short(p.time)} – ${end}`;
+    return `${whenText} · ${timeText} · ${names[p.category]}`;
+}
+
+const quickAddUndo = {};
+function undoQuickAdd(stamp) {
+    const ids = quickAddUndo[stamp];
+    if (!ids) return;
+    scheduledEvents = scheduledEvents.filter(e => !ids.includes(e.id));
+    delete quickAddUndo[stamp];
+    saveToLocalStorage();
+    renderCurrentView();
+    updateBalanceDisplay();
+    showToast('Removed', 'Quick Add undone', 'info');
+}
+
+function showQuickAddDate(dateKey) {
+    currentDate = new Date(dateKey + 'T12:00');
+    renderCurrentView();
+    updateBalanceDisplay();
+}
+
+function parseQuickAddSimple() {
+    try {
+        const input = document.getElementById('quickAddInput').value.trim();
+        if (!input) return;
+
+        const p = parseQuickAddText(input);
+        const weekDays = p.days || [new Date(p.date + 'T12:00').getDay() || 7];
+        let nextId = scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1;
+        const ids = [];
+        weekDays.forEach(d => {
+            const event = { id: nextId++, title: p.title, day: d, time: p.time, duration: p.duration, category: p.category };
+            if (p.date && !p.monthDay) event.date = p.date;
+            if (p.monthDay) event.monthDay = p.monthDay;
+            if (p.repeatEvery > 1) { event.repeatEvery = p.repeatEvery; event.anchor = p.anchor; }
+            scheduledEvents.push(event);
+            ids.push(event.id);
+        });
+        saveToLocalStorage();
+        document.getElementById('quickAddInput').value = '';
+
+        // A one-off that lands in another week would be invisible, so go there. (Repeating events show in every week.)
+        if (p.date && !p.monthDay && currentView === 'week') {
+            const landedWeek = toDateKey(getWeekStart(new Date(p.date + 'T12:00')));
+            if (toDateKey(getWeekStart(currentDate)) !== landedWeek) currentDate = new Date(p.date + 'T12:00');
+        }
+        renderCurrentView();
+        updateBalanceDisplay();
+
+        const stamp = Date.now() + '' + ids[0];
+        quickAddUndo[stamp] = ids;
+        const toastId = showToast(p.title + (weekDays.length > 1 ? ` (${weekDays.length} days)` : ''), describeQuickAdd(p), 'success',
+            [{ label: 'Undo', primary: true, onclick: `undoQuickAdd('${stamp}')` }]);
+        setTimeout(() => dismissToast(toastId), 9000);
     } catch (error) {
-        hideLoading();
         console.error('Error in parseQuickAddSimple:', error);
         showToast('Error', error.message || 'Failed to add event', 'error');
     }
@@ -7284,6 +7446,7 @@ function parseQuickAddSimple() {
             const wo = read('paceWorkouts'); if (Array.isArray(wo)) workoutLogs = wo;
             const hb = read('paceHabits');   if (Array.isArray(hb)) dailyHabits = hb;
             const pt = read('pacePartners'); if (Array.isArray(pt)) partners = pt;
+            if (typeof loadTargets === 'function') loadTargets();
             dataLoaded = true;
         }
 
@@ -7666,7 +7829,7 @@ function parseQuickAddSimple() {
             const categoryInfo = {
                 fitness: { name: 'Fitness', color: 'var(--accent-fitness)', icon: '💪' },
                 work: { name: 'Work', color: 'var(--accent-work)', icon: '💼' },
-                family: { name: 'Family', color: 'var(--accent-family)', icon: '❤️' },
+                family: { name: 'Family & Friends', color: 'var(--accent-family)', icon: '❤️' },
                 personal: { name: 'Personal', color: 'var(--accent-personal)', icon: '🌟' }
             };
             const today = new Date().toDateString();
@@ -7996,7 +8159,7 @@ function parseQuickAddSimple() {
             const categoryNames = {
                 fitness: 'Fitness',
                 work: 'Work',
-                family: 'Family',
+                family: 'Family & Friends',
                 personal: 'Personal'
             };
             
@@ -8840,15 +9003,23 @@ function parseQuickAddSimple() {
             return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
         }
 
+        // Event kinds: date = one-off; monthDay = monthly on that day of the month; repeatEvery (2) + anchor =
+        // every other week on `day`, counting from the week containing `anchor`; otherwise weekly on `day`.
         function occursOn(event, date) {
-            return event.date ? event.date === toDateKey(date) : event.day === (date.getDay() || 7);
+            if (event.date) return event.date === toDateKey(date);
+            if (event.monthDay) return date.getDate() === event.monthDay;
+            if (event.day !== (date.getDay() || 7)) return false;
+            if (event.repeatEvery > 1 && event.anchor) {
+                const weeks = Math.round((getWeekStart(date) - getWeekStart(new Date(event.anchor + 'T12:00'))) / (7 * 86400000));
+                return ((weeks % event.repeatEvery) + event.repeatEvery) % event.repeatEvery === 0;
+            }
+            return true;
         }
 
         function eventsInWeek(weekStart) {
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekEnd.getDate() + 6);
-            const from = toDateKey(weekStart), to = toDateKey(weekEnd);
-            return scheduledEvents.filter(e => !e.date || (e.date >= from && e.date <= to));
+            const days = [];
+            for (let i = 0; i < 7; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push(d); }
+            return scheduledEvents.filter(e => days.some(d => occursOn(e, d)));
         }
 
         // Right panel "Upcoming": the next few events over the coming week
@@ -8890,8 +9061,31 @@ function parseQuickAddSimple() {
         const WEEKLY_TARGETS = { fitness: 12, work: 40, family: 15, personal: 10 };
         const BALANCE_CATEGORIES = Object.keys(WEEKLY_TARGETS);
 
+        // Targets are yours to change (Goals page); defaults suit a full-time job with kids
+        function loadTargets() {
+            try {
+                const saved = JSON.parse(localStorage.getItem('paceTargets'));
+                if (saved) BALANCE_CATEGORIES.forEach(cat => { if (saved[cat] > 0) WEEKLY_TARGETS[cat] = Math.min(Number(saved[cat]), 168); });
+            } catch (e) { console.error('Could not read targets', e); }
+        }
+
+        function saveTargets(reset) {
+            const defaults = { fitness: 12, work: 40, family: 15, personal: 10 };
+            BALANCE_CATEGORIES.forEach(cat => {
+                const v = reset ? defaults[cat] : parseFloat(document.getElementById('target-' + cat).value);
+                if (v > 0 && v <= 168) WEEKLY_TARGETS[cat] = v;
+            });
+            try { localStorage.setItem('paceTargets', JSON.stringify(WEEKLY_TARGETS)); } catch (e) { console.error('Could not save targets', e); }
+            updateBalanceDisplay();
+            renderCurrentView();
+            showToast('Targets saved', BALANCE_CATEGORIES.map(c => `${c} ${WEEKLY_TARGETS[c]}h`).join(' · '), 'success');
+        }
+
+        // Sleep is scheduled so reminders work, but it isn't "personal time" for balance purposes
+        const NOT_COUNTED_RE = /^(sleep|bedtime)\b/i;
+
         function calculateBalance(weekStart = getWeekStart(currentDate)) {
-            const events = eventsInWeek(weekStart);
+            const events = eventsInWeek(weekStart).filter(e => !NOT_COUNTED_RE.test(e.title));
             const hours = { fitness: 0, work: 0, family: 0, personal: 0 };
             events.forEach(event => {
                 if (hours.hasOwnProperty(event.category)) hours[event.category] += (event.duration || 60) / 60;
@@ -8976,7 +9170,7 @@ function parseQuickAddSimple() {
                     return `
                         <div class="stat-card">
                             <div class="stat-value">${formatHours(h)}</div>
-                            <div class="stat-label">${cat === 'fitness' ? 'Fitness' : 'Family Time'} (target ${t}h)</div>
+                            <div class="stat-label">${cat === 'fitness' ? 'Fitness' : 'Family & Friends'} (target ${t}h)</div>
                             <div class="stat-change">${status}</div>
                         </div>`;
                 }).join('');
@@ -9000,6 +9194,7 @@ function parseQuickAddSimple() {
                     <div class="score-value">${b.score}</div>
                     <div class="score-label">${rating} Balance</div>
                     <div class="score-description">${description}</div>
+                    <div class="score-description"><a href="#" style="color: var(--accent-fitness);" onclick="switchView('goals'); return false;">Set your own weekly targets →</a></div>
                 </div>
 
                 <div class="time-distribution">
@@ -9112,8 +9307,7 @@ function parseQuickAddSimple() {
             
             if (categoryFilter) {
                 document.querySelectorAll('.category-item').forEach(item => {
-                    const categoryName = item.querySelector('span').textContent.toLowerCase();
-                    if (categoryName === category) {
+                    if ((item.getAttribute('onclick') || '').includes(`'${category}'`)) {
                         item.classList.add('filtered');
                     }
                 });
@@ -9446,16 +9640,63 @@ function parseQuickAddSimple() {
             return (h % 12 === 0 ? 12 : h % 12) + (h < 12 ? ' AM' : ' PM');
         }
 
-        // First hour row for a set of days: 6 AM, or earlier (multiples of 3) if any event starts before that
-        function firstGridHour(days) {
-            let first = 6;
+        // Hour rows to draw for a set of days: 6 AM to 10 PM, or wider if any event starts outside that
+        function gridHourRange(days) {
+            let first = 6, last = 22;
             days.forEach(day => {
                 scheduledEvents.forEach(event => {
                     const h = parseInt(event.time.split(':')[0]);
-                    if (h < first && occursOn(event, day)) first = Math.floor(h / 3) * 3;
+                    if (occursOn(event, day)) { first = Math.min(first, h); last = Math.max(last, h); }
                 });
             });
-            return first;
+            return [first, last];
+        }
+
+        function formatTime12Short(timeStr) {
+            const [h, m] = timeStr.split(':').map(Number);
+            return (h % 12 === 0 ? 12 : h % 12) + ':' + String(m).padStart(2, '0') + (h >= 12 ? ' PM' : ' AM');
+        }
+
+        // Phone week view: one section per day, events listed by time. Tapping an event edits it; tapping an
+        // empty day adds one on that date.
+        function getWeekAgendaHTML(days, todayKey) {
+            const weekStart = days[0];
+            const rows = days.map((day, i) => {
+                const events = scheduledEvents.filter(e => occursOn(e, day)).sort((a, b) => a.time.localeCompare(b.time));
+                const isToday = toDateKey(day) === todayKey;
+                const list = events.length ? events.map(e => `
+                    <div class="agenda-event ${e.category}" data-event-id="${e.id}" onclick="editEvent(${e.id})">
+                        <div class="agenda-time">${formatTime12Short(e.time)}<br><span>${formatTime12Short(addMinutes(e.time, e.duration))}</span></div>
+                        <div class="agenda-title">${e.title}${e.date ? '' : ' <span class="agenda-repeat" title="Repeats weekly">↻</span>'}</div>
+                    </div>`).join('') : `<div class="agenda-empty">Nothing planned</div>`;
+                return `
+                    <div class="agenda-day ${isToday ? 'today' : ''}" data-day="${i + 1}">
+                        <div class="agenda-day-header" onclick="openModalForDay(${i + 1}, '09:00')">
+                            <span class="agenda-day-name">${day.toLocaleDateString('en-US', { weekday: 'long' })}</span>
+                            <span class="agenda-day-date">${day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}${isToday ? ' · Today' : ''}</span>
+                            <span class="agenda-add">+</span>
+                        </div>
+                        ${list}
+                    </div>`;
+            }).join('');
+            return `
+                <div class="calendar-header agenda-header">
+                    <div class="calendar-title">Week of ${formatDate(weekStart)}<input type="hidden" id="quickAddInput"></div>
+                    <div class="calendar-controls">
+                        <button class="habit-bell-icon" id="habitBellIcon" onclick="toggleHabitTracker()" title="Habits left today">
+                            ✓
+                            <span class="notification-badge" id="habitBadge" style="display: ${habitsLeftToday() ? 'flex' : 'none'};">${habitsLeftToday()}</span>
+                        </button>
+                        <button class="notification-bell ${unreadCount ? 'has-unread' : ''}" id="notificationBell" onclick="toggleNotifications()" title="Notifications">
+                            🔔
+                            <span class="notification-badge" id="notificationBadge" style="display: ${unreadCount ? 'flex' : 'none'};">${unreadCount}</span>
+                        </button>
+                        <button class="control-btn" onclick="navigatePrev()" title="Previous week">←</button>
+                        <button class="control-btn" onclick="navigateToday()" title="Today">•</button>
+                        <button class="control-btn" onclick="navigateNext()" title="Next week">→</button>
+                    </div>
+                </div>
+                <div class="week-agenda">${rows}</div>`;
         }
 
         function getWeekViewHTML() {
@@ -9467,10 +9708,15 @@ function parseQuickAddSimple() {
                 days.push(day);
             }
 
-            // 3-hour rows from 6 AM, starting earlier (3 AM / 12 AM) when something that week begins before 6
+            // One row per hour: 6 AM to 10 PM, widened when an event that week starts outside that
+            const [gridFirst, gridLast] = gridHourRange(days);
             const timeSlotHours = [];
-            for (let h = firstGridHour(days); h < 24; h += 3) timeSlotHours.push(h);
+            for (let h = gridFirst; h <= gridLast; h++) timeSlotHours.push(h);
             const timeSlots = timeSlotHours.map(hourLabel);
+            const todayKey = toDateKey(new Date());
+
+            // Phones get a day-by-day agenda instead of a 7-column grid that needs sideways scrolling
+            if (window.innerWidth <= 768) return getWeekAgendaHTML(days, todayKey);
 
             return `
                 <div class="calendar-header">
@@ -9514,7 +9760,7 @@ function parseQuickAddSimple() {
                 <div class="week-grid">
                     <div class="time-label"></div>
                     ${days.map((day, idx) => `
-                        <div class="day-header">
+                        <div class="day-header ${toDateKey(day) === todayKey ? 'today' : ''}">
                             <div class="day-name">${day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
                             <div class="day-date">${day.getDate()}</div>
                         </div>
@@ -9684,7 +9930,7 @@ function parseQuickAddSimple() {
                 selectedCategory = event.category;
                 document.querySelectorAll('.category-option').forEach(opt => {
                     opt.classList.remove('selected');
-                    if (opt.textContent.toLowerCase().trim() === event.category) {
+                    if (opt.classList.contains(event.category)) {
                         opt.classList.add('selected');
                     }
                 });
@@ -9951,7 +10197,7 @@ function parseQuickAddSimple() {
             const [rating, description] = balanceRating(b.score);
             const from = toDateKey(weekStart), to = toDateKey(weekEnd);
             const workoutsLogged = workoutLogs.filter(w => w.date >= from && w.date <= to).length;
-            const names = { fitness: 'Fitness', work: 'Work', family: 'Family', personal: 'Personal' };
+            const names = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
 
             const status = cat => {
                 const h = b.hours[cat], t = WEEKLY_TARGETS[cat];
@@ -10009,6 +10255,21 @@ function parseQuickAddSimple() {
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">Week of ${formatDate(weekStart)}</div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
                     ${BALANCE_CATEGORIES.map(card).join('')}
+
+                    <!-- Targets -->
+                    <div id="targetsCard" style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <h3 style="font-size: 1.25rem; font-weight: 500; margin-bottom: 0.5rem;">Your weekly targets</h3>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.5rem;">Hours per week you're aiming for. Balance scores you against these.</div>
+                        ${BALANCE_CATEGORIES.map(cat => `
+                            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-size: 0.9rem;">
+                                <span style="display: flex; align-items: center; gap: 0.5rem;"><span style="width: 10px; height: 10px; border-radius: 50%; background: var(--accent-${cat});"></span>${names[cat]}</span>
+                                <input type="number" id="target-${cat}" min="1" max="168" step="0.5" value="${WEEKLY_TARGETS[cat]}" style="width: 5rem; padding: 0.4rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); text-align: right;">
+                            </label>`).join('')}
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1.25rem;">
+                            <button class="control-btn" style="flex: 1; font-size: 0.85rem;" onclick="saveTargets()">Save targets</button>
+                            <button class="control-btn" style="font-size: 0.85rem;" onclick="saveTargets(true)">Reset</button>
+                        </div>
+                    </div>
 
                     <!-- Balance Score Card -->
                     <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border); grid-column: span 1;">
@@ -10199,6 +10460,12 @@ function parseQuickAddSimple() {
         let bulkEditChanges = []; // Track changes made in bulk edit mode
 
         function toggleBulkEdit() {
+            // The phone week view is a day-by-day list with no selectable blocks or action bar
+            if (!document.getElementById('bulkModeIndicator')) {
+                bulkEditMode = false;
+                showToast('Bulk edit', 'Bulk edit needs the grid view: open Pace on a wider screen.', 'info');
+                return;
+            }
             bulkEditMode = !bulkEditMode;
             const btn = document.getElementById('bulkEditBtn');
             const mobileBulkBtn = document.getElementById('mobileBulkEditBtn');
@@ -10320,9 +10587,10 @@ function parseQuickAddSimple() {
         function updateSelectedCount() {
             const countElement = document.getElementById('selectedCount');
             const count = selectedEvents.size;
-            countElement.textContent = `${count} selected`;
-            
             const actionsBar = document.getElementById('bulkEditActions');
+            if (!countElement || !actionsBar) return; // phone agenda has neither
+            countElement.textContent = `${count} selected`;
+
             if (count > 0) {
                 actionsBar.classList.add('active');
             } else {
@@ -10363,7 +10631,7 @@ function parseQuickAddSimple() {
 
         function bulkChangeCategory() {
             const categories = ['fitness', 'work', 'family', 'personal'];
-            const choice = prompt('Change category to:\n1=Fitness, 2=Work, 3=Family, 4=Personal');
+            const choice = prompt('Change category to:\n1=Fitness, 2=Work, 3=Family & Friends, 4=Personal');
             if (choice && choice >= 1 && choice <= 4) {
                 const newCategory = categories[parseInt(choice) - 1];
                 selectedEvents.forEach(eventId => {
@@ -11253,7 +11521,7 @@ function enhanceExportImport() {
             const mobileQuickAdd = document.querySelector('.mobile-quick-add');
             if (mobileQuickAdd) {
                 if (window.innerWidth <= 768) {
-                    mobileQuickAdd.style.display = 'block';
+                    mobileQuickAdd.style.display = 'flex';
                 } else {
                     mobileQuickAdd.style.display = 'none';
                 }

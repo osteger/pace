@@ -114,12 +114,29 @@ export const steps = [
     document.getElementById('quickAddInput').value = 'Drop-off 7:30am every weekday'; parseQuickAdd();
     switchView('week'); renderWeekView();
     await new Promise(r => setTimeout(r, 300));
+    const phone = innerWidth <= 768; // phones get a day-by-day agenda instead of the hourly grid
     const labels = [...document.querySelectorAll('.week-grid .time-label')].map(e => e.textContent.trim());
-    need(labels.includes('3 AM'), 'no 3 AM row for a 5:30am workout: ' + labels);
-    need(!!document.querySelector('.event-block .event-title') && [...document.querySelectorAll('.event-title')].some(e => e.textContent.trim() === 'Workout'), 'workout not drawn');
-    const cell = [...document.querySelectorAll('.day-cell')].find(c => c.querySelectorAll('.event-title').length >= 2 && c.textContent.includes('Drop-off'));
-    const order = cell ? [...cell.querySelectorAll('.event-title')].map(e => e.textContent.trim()) : [];
-    need(order.indexOf('Drop-off') >= 0 && order.indexOf('Drop-off') < order.indexOf('Work'), 'cell not sorted by time: ' + order);
+    let order;
+    if (phone) {
+      need(!!document.querySelector('.week-agenda'), 'phone has no agenda');
+      const monday = document.querySelector('.agenda-day[data-day="1"]');
+      order = [...monday.querySelectorAll('.agenda-title')].map(e => e.textContent.replace('↻', '').trim());
+      need(order.indexOf('Workout') === 0, 'workout (5:30) should be first on Monday: ' + order);
+    } else {
+      need(labels.includes('5 AM') && labels.includes('6 AM') && labels.includes('10 PM'), 'hourly rows incl. 5 AM for a 5:30am workout: ' + labels);
+      need([...document.querySelectorAll('.event-title')].some(e => e.textContent.trim() === 'Workout'), 'workout not drawn');
+      // two events in the same hour: earlier start first, whatever order they were added in
+      scheduledEvents.push({ id: 6001, title: 'Late', category: 'work', day: 1, time: '07:45', duration: 15 }, { id: 6002, title: 'Early', category: 'work', day: 1, time: '07:15', duration: 15 });
+      renderWeekView();
+      const cell = document.querySelector('.day-cell[data-day="1"][data-hour="7"]');
+      order = [...cell.querySelectorAll('.event-title')].map(e => e.textContent.trim());
+      need(order.join() === 'Early,Drop-off,Late', 'same-hour events not sorted by time: ' + order);
+      // the second event in a busy hour must be fully visible, not squeezed under the first
+      const blocks = [...cell.querySelectorAll('.event-block')];
+      const cellBox = cell.getBoundingClientRect();
+      need(blocks.every(b => b.getBoundingClientRect().bottom <= cellBox.bottom + 1), 'events overflow their cell (clipped)');
+      scheduledEvents = scheduledEvents.filter(e => e.id !== 6001 && e.id !== 6002);
+    }
     currentDate = getWeekStart(new Date()); // a Monday: the workout is weekdays only
     switchView('day'); renderDayView();
     const dayHours = [...document.querySelectorAll('div')].some(e => e.children.length === 0 && /^\\s*5:00 AM\\s*$/.test(e.textContent));
@@ -182,6 +199,116 @@ export const steps = [
     saveToLocalStorage();
     return JSON.stringify({ inPanel, reminder, toasts: toasts.length });
   })()`, 600],
+  // A 25 year old: first job, gym, friends. Quick Add must understand them or say what it did.
+  ['first job: Quick Add understands real phrasing', `(() => {
+    const need = (ok, msg) => { if (!ok) throw new Error('first job: ' + msg); };
+    const P = t => parseQuickAddText(t);
+    const key = d => toDateKey(d);
+    const today = new Date(), tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    let r = P('gym monday wednesday friday 6:30pm');
+    need(r.days.join() === '1,3,5' && r.time === '18:30' && r.title === 'Gym', 'multi-day list: ' + JSON.stringify(r));
+    r = P('gym mon/wed/fri 6am');
+    need(r.days.join() === '1,3,5' && r.time === '06:00', 'slash list: ' + JSON.stringify(r));
+    r = P('standup mon-fri 9:30am 15 min');
+    need(r.days.join() === '1,2,3,4,5' && r.duration === 15 && r.title === 'Standup', 'day range: ' + JSON.stringify(r));
+    r = P('coffee with Alex tonight 8pm');
+    need(r.date === key(today) && r.time === '20:00' && r.title === 'Coffee with Alex' && r.category === 'family', 'tonight: ' + JSON.stringify(r));
+    r = P('lunch w/ Dana tmrw noon');
+    need(r.date === key(tomorrow) && r.time === '12:00' && r.title === 'Lunch w/ Dana', 'tmrw noon: ' + JSON.stringify(r));
+    r = P('dentist next friday 2pm');
+    const nf = new Date(r.date + 'T12:00'), days = Math.round((nf - new Date(key(today) + 'T12:00')) / 864e5);
+    need(nf.getDay() === 5 && days >= 5 && days <= 11 && r.title === 'Dentist' && r.category === 'personal', 'next friday: ' + JSON.stringify(r) + ' in ' + days + ' days');
+    r = P('happy hour after work thursday');
+    need(r.time === '18:00' && r.title === 'Happy hour' && new Date(r.date + 'T12:00').getDay() === 4, 'after work: ' + JSON.stringify(r));
+    r = P('yoga in 2 hours');
+    need(r.title === 'Yoga' && !r.usedDefaultTime, 'in 2 hours: ' + JSON.stringify(r));
+    r = P('call parents sundays 5pm');
+    need(r.days.join() === '7' && r.category === 'family', 'call parents: ' + JSON.stringify(r));
+    r = P('Taylor Swift concert 11/20 8pm');
+    need(/-11-20$/.test(r.date) && r.time === '20:00' && r.category === 'family', 'slash date: ' + JSON.stringify(r));
+    r = P('drinks with Sam friday 7pm');
+    need(r.category === 'family' && r.title === 'Drinks with Sam', 'drinks is social: ' + JSON.stringify(r));
+    r = P('sleep by 11pm every night');
+    need(r.title === 'Sleep' && r.days.length === 7 && r.time === '23:00', 'sleep: ' + JSON.stringify(r));
+    // every other week: exactly alternate weeks
+    r = P('therapy every other tuesday 6pm');
+    need(r.repeatEvery === 2 && r.days.join() === '2' && !!r.anchor, 'every other: ' + JSON.stringify(r));
+    const e2 = { id: 1, title: 'T', day: 2, time: '18:00', duration: 60, category: 'personal', repeatEvery: 2, anchor: r.anchor };
+    const tues = [0, 1, 2, 3].map(w => { const d = new Date(r.anchor + 'T12:00'); d.setDate(d.getDate() + 7 * w); return occursOn(e2, d); });
+    need(tues.join() === 'true,false,true,false', 'every other week alternates: ' + tues);
+    // monthly on the 1st
+    r = P('pay rent monthly on the 1st');
+    need(r.monthDay === 1 && r.title === 'Pay rent', 'monthly: ' + JSON.stringify(r));
+    const m = { id: 2, title: 'R', day: 1, time: '09:00', duration: 60, category: 'personal', monthDay: 1 };
+    need(occursOn(m, new Date(2026, 11, 1)) && !occursOn(m, new Date(2026, 11, 2)), 'monthly occursOn');
+    r = P('pay rent on the 1st');
+    need(r.date && new Date(r.date + 'T12:00').getDate() === 1 && r.monthDay === null,'on the 1st is a one-off on the next 1st: ' + JSON.stringify(r));
+    return 'ok';
+  })()`, 300],
+  ['first job: Quick Add shows what it understood, jumps to the week, undoes', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('first job: ' + msg); };
+    const saved = JSON.parse(JSON.stringify(scheduledEvents));
+    currentDate = new Date(); switchView('week');
+    const viewed = toDateKey(getWeekStart(currentDate));
+    document.getElementById('quickAddInput').value = 'Priya birthday dinner Nov 14 7:30pm';
+    // pick a date in another week regardless of today's date
+    const far = new Date(); far.setDate(far.getDate() + 21);
+    document.getElementById('quickAddInput').value = 'Priya birthday dinner ' + far.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' 7:30pm';
+    const before = scheduledEvents.length;
+    parseQuickAdd();
+    need(scheduledEvents.length === before + 1, 'event not added');
+    need(toDateKey(getWeekStart(currentDate)) !== viewed, 'did not jump to the week the event landed in');
+    const toast = document.querySelector('#toastContainer .toast:last-child');
+    need(toast && /Priya birthday dinner/.test(toast.textContent) && /7:30 PM/.test(toast.textContent) && /Family & Friends/.test(toast.textContent), 'toast: ' + (toast && toast.textContent));
+    toast.querySelector('.toast-action-btn').click(); // Undo
+    need(scheduledEvents.length === before, 'undo did not remove it');
+    scheduledEvents = saved; saveToLocalStorage(); currentDate = new Date(); renderCurrentView();
+    return toast.textContent.replace(/\\s+/g, ' ').slice(0, 120);
+  })()`, 400],
+  ['first job: week view layout (today, hourly, phone agenda)', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('first job: ' + msg); };
+    currentDate = new Date(); switchView('week'); renderWeekView();
+    await new Promise(r => setTimeout(r, 200));
+    if (innerWidth <= 768) {
+      need(document.querySelectorAll('.agenda-day').length === 7, 'agenda should list 7 days');
+      need(document.querySelectorAll('.agenda-day.today').length === 1, 'agenda should mark today');
+      need(!!document.querySelector('.mobile-quick-add button'), 'no Add button next to the phone Quick Add');
+      document.getElementById('mobileQuickAddInput').value = 'phone test 3pm';
+      const before = scheduledEvents.length;
+      document.querySelector('.mobile-quick-add button').click();
+      need(scheduledEvents.length === before + 1, 'Add button did nothing');
+      scheduledEvents.pop(); saveToLocalStorage(); renderWeekView();
+      need(document.documentElement.scrollWidth <= innerWidth + 1, 'page scrolls sideways on the phone');
+    } else {
+      need(document.querySelectorAll('.week-grid .day-header.today').length === 1, 'week grid should mark today');
+      const rows = document.querySelectorAll('.week-grid .time-label').length;
+      need(rows >= 17, 'expected hourly rows, got ' + rows);
+      need(getComputedStyle(document.querySelector('.week-grid')).flexShrink === '0', 'week grid can shrink and clip events');
+      need(getComputedStyle(document.querySelector('.calendar-title')).whiteSpace === 'nowrap', 'title can wrap');
+    }
+    return 'ok';
+  })()`, 300],
+  ['first job: targets are editable, sleep is not counted, nothing says Family-only', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('first job: ' + msg); };
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)); const old = { ...WEEKLY_TARGETS };
+    const ws = getWeekStart(new Date());
+    scheduledEvents = [
+      { id: 1, title: 'Gym', category: 'fitness', day: 1, time: '18:00', duration: 360 },
+      { id: 2, title: 'Sleep', category: 'personal', day: 1, time: '23:00', duration: 600 },
+    ];
+    need(calculateBalance(ws).hours.personal === 0, 'sleep was counted as personal time: ' + calculateBalance(ws).hours.personal);
+    currentDate = new Date(); switchView('goals');
+    need(!!document.getElementById('target-fitness'), 'no targets editor on Goals');
+    document.getElementById('target-fitness').value = '6';
+    saveTargets();
+    need(WEEKLY_TARGETS.fitness === 6 && JSON.parse(localStorage.getItem('paceTargets')).fitness === 6, 'target did not save');
+    need(calculateBalance(ws).percentages.fitness === 100, 'score ignores new target');
+    need(/Family & Friends/.test(document.body.innerText), 'category not renamed to Family & Friends');
+    saveTargets(true); // reset
+    need(WEEKLY_TARGETS.fitness === 12, 'reset failed');
+    Object.assign(WEEKLY_TARGETS, old); scheduledEvents = saved; saveToLocalStorage(); switchView('week'); renderWeekView();
+    return 'ok';
+  })()`, 300],
   ['backup restore round trip', `(async () => {
     const backup = { version: '1.0', scheduledEvents: [{ id: 1, title: 'Restored', day: 3, time: '10:00', duration: 30, category: 'work' }], workouts: [{ id: 9, date: '2026-10-30', workoutName: 'Legs', exercises: [] }], dailyHabits: [{ id: 1, name: 'Restored habit', category: 'personal', completedDates: [] }], partners: [] };
     const { importFromJSON } = enhanceExportImport();
