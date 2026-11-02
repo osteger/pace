@@ -8,7 +8,9 @@ const url = process.argv[2] || 'http://localhost:8080/';
 const mobile = process.argv.includes('--mobile');
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const PORT = 9334;
+import { waitPortFree, stopChrome } from './chrome-port.mjs';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pace-audit-'));
+await waitPortFree(PORT);
 const chrome = spawn(CHROME, ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
   '--no-first-run', '--no-default-browser-check', `--window-size=${mobile ? '390,844' : '1440,900'}`, 'about:blank'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -56,7 +58,7 @@ for (const r of report) {
   r.errors.forEach(e => console.log(`      !! ${e}`));
   r.dialogs.forEach(d => console.log(`      [dialog] ${d}`));
 }
-ws.close(); chrome.kill(); await sleep(400);
+ws.close(); await stopChrome(chrome, PORT);
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
 // Fail on page exceptions or a step whose own code threw
 const failed = report.filter(r => r.errors.length || (typeof r.out === 'string' && r.out.startsWith('THREW')));

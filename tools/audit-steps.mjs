@@ -411,7 +411,86 @@ export const steps = [
     scheduledEvents = saved; eventDone = savedDone; notifications.length = nBefore; saveToLocalStorage(); renderCurrentView();
     return 'ok';
   })()`, 300],
-  ['rewards: completion marker saved before reload', `(() => { eventDone['9999@2026-01-01'] = 'work'; saveToLocalStorage(); return 'set'; })()`],
+  ['rewards: finish-line message, streak moments, day closed', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('rewards: ' + msg); };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const toasts = () => [...document.querySelectorAll('#toastContainer .toast')].map(t => t.textContent);
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)), savedDone = { ...eventDone }, savedHabits = JSON.parse(JSON.stringify(dailyHabits));
+    const savedClosed = localStorage.getItem('paceDayClosed');
+    const day = n => new Date(Date.now() - n * 864e5).toDateString();
+    need(!/broke|fail|missed|lost|disappoint/i.test(JSON.stringify(REWARD_LINES)), 'a reward line talks about failing');
+    currentDate = new Date(); switchView('week');
+
+    // finish-line message + day closed (one event today, no habits)
+    localStorage.removeItem('paceDayClosed'); dailyHabits = []; eventDone = {};
+    const today = new Date();
+    scheduledEvents = [{ id: 1, title: 'Run', category: 'fitness', day: today.getDay() || 7, time: '07:00', duration: 60, date: toDateKey(today) }];
+    markAsComplete(1);
+    await sleep(1700);
+    let t = toasts();
+    need(REWARD_LINES.finish.fitness.some(l => t.some(x => x.includes(l))), 'no finish-line message: ' + JSON.stringify(t));
+    need(t.some(x => /Day closed/.test(x)), 'no day-closed message when the only thing today is done: ' + JSON.stringify(t));
+    need(localStorage.getItem('paceDayClosed') === JSON.stringify(toDateKey(today)), 'day-closed not remembered');
+    document.querySelectorAll('#toastContainer .toast').forEach(x => x.remove());
+    markAsComplete(1); markAsComplete(1); await sleep(1500); // undo then redo: must not announce a second time today
+    need(!toasts().some(x => /Day closed/.test(x)), 'day closed announced twice');
+    // a habit still open keeps the day open
+    localStorage.removeItem('paceDayClosed'); eventDone = {}; dailyHabits = [{ id: 5, name: 'Stretch', category: 'fitness', completedDates: [] }];
+    markAsComplete(1); await sleep(1500);
+    need(!toasts().some(x => /Day closed/.test(x)) , 'day closed while a habit is still open');
+
+    // streak moment at 3 days, comeback after a gap
+    document.querySelectorAll('#toastContainer .toast').forEach(x => x.remove());
+    dailyHabits = [{ id: 6, name: 'Read', category: 'personal', completedDates: [day(1), day(2)] }];
+    toggleHabitComplete(6); await sleep(700);
+    t = toasts();
+    need(REWARD_LINES.streak[3].some(l => t.some(x => x.includes(l))), 'no 3-day streak message: ' + JSON.stringify(t));
+    document.querySelectorAll('#toastContainer .toast').forEach(x => x.remove());
+    dailyHabits = [{ id: 7, name: 'Meditate', category: 'personal', completedDates: [day(9), day(8), day(7)] }];
+    toggleHabitComplete(7); await sleep(700);
+    t = toasts();
+    need(REWARD_LINES.comeback.some(l => t.some(x => x.includes(l))), 'no welcome-back message after a gap: ' + JSON.stringify(t));
+
+    scheduledEvents = saved; eventDone = savedDone; dailyHabits = savedHabits;
+    if (savedClosed === null) localStorage.removeItem('paceDayClosed'); else localStorage.setItem('paceDayClosed', savedClosed);
+    saveToLocalStorage(); renderCurrentView();
+    return 'ok';
+  })()`, 300],
+  ['rewards: your own rewards (set, progress, unlock, claim)', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('rewards: ' + msg); };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)), savedDone = { ...eventDone }, savedRewards = localStorage.getItem('paceRewards');
+    localStorage.removeItem('paceRewards'); eventDone = {};
+    const today = new Date(), key = toDateKey(today);
+    scheduledEvents = [1, 2, 3].map(i => ({ id: i, title: 'Lift ' + i, category: 'fitness', day: today.getDay() || 7, time: '0' + (5 + i) + ':00', duration: 60, date: key }));
+    currentDate = new Date(); switchView('goals');
+    need(!!document.getElementById('rewardsCard'), 'no rewards card on Goals');
+    document.getElementById('rewardName').value = 'New shoes';
+    document.getElementById('rewardGoal').value = '2';
+    document.getElementById('rewardCategory').value = 'fitness';
+    addReward();
+    let list = getRewards();
+    need(list.length === 1 && list[0].goal === 2 && list[0].since === key, 'reward not saved: ' + JSON.stringify(list));
+    need(/2 to go/.test(document.getElementById('rewardsCard').textContent), 'card should say 2 to go');
+    addReward(); need(getRewards().length === 1, 'empty reward should be rejected');
+    markAsComplete(1); await sleep(200);
+    need(rewardProgress(getRewards()[0]) === 1 && !getRewards()[0].reached, 'one done: progress 1, not reached');
+    switchView('goals'); need(/1 to go/.test(document.getElementById('rewardsCard').textContent), 'card should say 1 to go');
+    markAsComplete(2); await sleep(1300);
+    need(getRewards()[0].reached === true, 'goal met but reward not unlocked');
+    need([...document.querySelectorAll('#toastContainer .toast')].some(t => /Reward unlocked/.test(t.textContent)), 'no unlock message');
+    switchView('goals'); need(!!document.querySelector('#rewardsCard button[onclick^="claimReward"]'), 'no Claim button');
+    claimReward(getRewards()[0].id);
+    need(getRewards()[0].claimed === true, 'claim failed');
+    deleteReward(getRewards()[0].id); need(getRewards().length === 0, 'delete failed');
+    // work things do not count toward a fitness reward
+    eventDone = { ['9@' + key]: 'work' };
+    need(rewardProgress({ since: key, category: 'fitness' }) === 0 && rewardProgress({ since: key, category: 'any' }) === 1, 'category filter');
+    if (savedRewards === null) localStorage.removeItem('paceRewards'); else localStorage.setItem('paceRewards', savedRewards);
+    scheduledEvents = saved; eventDone = savedDone; saveToLocalStorage(); switchView('week'); renderWeekView();
+    return 'ok';
+  })()`, 300],
+  ['rewards: completion marker saved before reload',`(() => { eventDone['9999@2026-01-01'] = 'work'; saveToLocalStorage(); return 'set'; })()`],
   ['backup restore round trip', `(async () => {
     const backup = { version: '1.0', scheduledEvents: [{ id: 1, title: 'Restored', day: 3, time: '10:00', duration: 30, category: 'work' }], workouts: [{ id: 9, date: '2026-10-30', workoutName: 'Legs', exercises: [] }], dailyHabits: [{ id: 1, name: 'Restored habit', category: 'personal', completedDates: [] }], partners: [] };
     const { importFromJSON } = enhanceExportImport();

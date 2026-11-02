@@ -7842,12 +7842,12 @@ function parseQuickAddSimple() {
             if (habit.completedDates.includes(today)) {
                 habit.completedDates = habit.completedDates.filter(d => d !== today);
             } else {
+                const comeback = habitMoment(habit); // looks at the history before today is added
                 habit.completedDates.push(today);
                 growthToast(plantCat, stageBefore);
-                const streak = calculateStreak(habit.completedDates);
-                if (streak % 7 === 0) {
-                    showToast('Streak!', `${streak} days in a row: "${habit.name}"`, 'success');
-                }
+                const moment = streakMoment(habit) || comeback;
+                if (moment) setTimeout(() => showToast(moment.title, moment.text, 'success'), 300);
+                setTimeout(checkDayClosed, 0);
             }
             saveToLocalStorage();
             renderHabits();
@@ -10305,6 +10305,7 @@ function parseQuickAddSimple() {
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">Week of ${formatDate(weekStart)}</div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
                     ${gardenCardHTML()}
+                    ${rewardsCardHTML()}
                     ${BALANCE_CATEGORIES.map(card).join('')}
 
                     <!-- Targets -->
@@ -10356,7 +10357,25 @@ function parseQuickAddSimple() {
                 strong: ['You did what you said you would. That is the whole trick.', 'A week of keeping your word to yourself.'],
                 steady: ['A real week, lived. Keep going.', 'Progress is mostly showing up. You did.'],
                 fresh: ['Fresh start. The calendar is ready when you are.', 'Every week is a clean page.']
-            }
+            },
+            // Shown when you mark something done
+            finish: {
+                fitness: ['Strong work. That one is banked.', 'Every session is a vote for who you are becoming.', 'You showed up. That is the hard part.', 'Done beats perfect. Done and sweaty beats everything.'],
+                work: ['Checked off. Enjoy the quiet.', 'Another one down, nicely done.', 'Progress, not perfection. Well done.'],
+                family: ['That time with your people is the good stuff.', 'Memories made. Worth every minute.', 'Showing up for people is the whole game.'],
+                personal: ['You kept a promise to yourself.', 'Small acts of care add up.', 'Good for you. Really.']
+            },
+            // Habit streak milestones (days) and what to say; nothing is said about broken streaks
+            streak: {
+                3: ['Three days in a row. A habit is taking root.'],
+                7: ['A full week. That is no accident.', 'Seven days straight. You are someone who does this now.'],
+                14: ['Two weeks. The hard part is behind you.'],
+                30: ['Thirty days. This is part of your life now.'],
+                60: ['Sixty days. Quietly remarkable.'],
+                100: ['One hundred days. Hats off.']
+            },
+            comeback: ['Welcome back. Streaks restart, habits stay yours.', 'Good to see you again. Pick up right here.'],
+            dayClosed: ['Everything on today\'s list is done. Go enjoy the evening.', 'List cleared. You earned the rest of the day.', 'Day closed. Nicely done.']
         };
 
         const GARDEN_CATEGORIES = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
@@ -10461,6 +10480,127 @@ function parseQuickAddSimple() {
         }
         function stageOf(category) { return gardenState().find(p => p.cat === category).stage; }
 
+        // ---- Finish-line message ----
+        function finishCheer(category) {
+            const icons = { fitness: '💪', work: '💼', family: '❤️', personal: '🌟' };
+            setTimeout(() => showToast(icons[category] || '✨', pick(REWARD_LINES.finish[category] || REWARD_LINES.finish.personal), 'success'), 400);
+        }
+
+        // ---- Habit streak moments ----
+        // Called just before today is added to a habit. Returns the message to show, if any.
+        function habitMoment(habit) {
+            const dates = (habit.completedDates || []).map(d => toDateKey(new Date(d))).sort();
+            const last = dates[dates.length - 1];
+            const yesterday = toDateKey(new Date(Date.now() - 86400000));
+            if (last && last < yesterday && calculateBestStreak(habit.completedDates) >= 3) return { title: '👋 ' + habit.name, text: pick(REWARD_LINES.comeback) };
+            return null;
+        }
+        function streakMoment(habit) {
+            const streak = calculateStreak(habit.completedDates);
+            const lines = REWARD_LINES.streak[streak];
+            return lines ? { title: '🔥 ' + streak + ' days: ' + habit.name, text: pick(lines) } : null;
+        }
+
+        // ---- Day closed: every scheduled thing and every habit for today is done ----
+        function checkDayClosed() {
+            const today = new Date(), key = toDateKey(today);
+            if (readJSON('paceDayClosed', '') === key) return;
+            const todays = scheduledEvents.filter(e => occursOn(e, today) && !NOT_COUNTED_RE.test(e.title));
+            if (!todays.length || !todays.every(e => eventDone[doneKeyFor(e, key)])) return;
+            if (dailyHabits.length && habitsLeftToday() > 0) return;
+            writeJSON('paceDayClosed', key);
+            setTimeout(() => showToast('🌙 Day closed', pick(REWARD_LINES.dayClosed), 'success'), 1200);
+        }
+
+        // ---- Your own rewards: "10 workouts = new shoes" ----
+        function getRewards() { return readJSON('paceRewards', []); }
+        function saveRewards(list) { writeJSON('paceRewards', list); }
+
+        // Things done since the reward was set, in its category (or any)
+        function rewardProgress(r) {
+            let n = 0;
+            Object.entries(eventDone).forEach(([key, cat]) => {
+                if (key.split('@')[1] >= r.since && (r.category === 'any' || r.category === cat)) n++;
+            });
+            return n;
+        }
+
+        function addReward() {
+            const name = document.getElementById('rewardName').value.trim();
+            const goal = parseInt(document.getElementById('rewardGoal').value);
+            const category = document.getElementById('rewardCategory').value;
+            if (!name || !(goal >= 1 && goal <= 500)) {
+                showToast('Missing details', 'Give your reward a name and a number of things (1 to 500).', 'error');
+                return;
+            }
+            const list = getRewards();
+            list.push({ id: Date.now(), name, goal, category, since: toDateKey(new Date()), reached: false, claimed: false });
+            saveRewards(list);
+            showToast('Reward set', name + ' · ' + goal + ' to go', 'success');
+            renderCurrentView();
+        }
+
+        function claimReward(id) {
+            const list = getRewards(), r = list.find(x => x.id === id);
+            if (!r) return;
+            r.claimed = true;
+            saveRewards(list);
+            showToast('🎁 Enjoy it', 'You earned: ' + r.name, 'success');
+            renderCurrentView();
+        }
+
+        function deleteReward(id) {
+            saveRewards(getRewards().filter(x => x.id !== id));
+            renderCurrentView();
+        }
+
+        // Called after anything gets completed: unlock rewards whose goal is now met
+        function checkRewardGoals() {
+            const list = getRewards();
+            let changed = false;
+            list.forEach(r => {
+                if (!r.reached && !r.claimed && rewardProgress(r) >= r.goal) {
+                    r.reached = true; changed = true;
+                    setTimeout(() => showToast('🎁 Reward unlocked', r.name + '. You did ' + r.goal + ' things to earn it.', 'success'), 1000);
+                    addNotification({ type: 'reminder', icon: '🎁', title: 'Reward unlocked: ' + r.name, message: 'Open Goals to claim it.' });
+                }
+            });
+            if (changed) saveRewards(list);
+        }
+
+        function rewardsCardHTML() {
+            const names = { any: 'anything', fitness: 'fitness things', work: 'work things', family: 'family & friends things', personal: 'personal things' };
+            const rows = getRewards().map(r => {
+                const done = Math.min(rewardProgress(r), r.goal);
+                const pct = Math.round(done / r.goal * 100);
+                const state = r.claimed ? '<span style="color: var(--text-tertiary);">✓ Claimed</span>'
+                    : r.reached || done >= r.goal ? `<button class="control-btn" style="font-size: 0.8rem; padding: 0.35rem 0.8rem;" onclick="claimReward(${r.id})">🎁 Claim it</button>`
+                    : `<span style="color: var(--text-secondary);">${r.goal - done} to go</span>`;
+                return `
+                    <div style="padding: 0.8rem 0; border-top: 1px solid var(--border);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;">
+                            <div><div style="font-weight: 500;">${r.name.replace(/</g, '&lt;')}</div>
+                                 <div style="font-size: 0.75rem; color: var(--text-tertiary);">${r.goal} ${names[r.category]} since ${new Date(r.since + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div></div>
+                            <div style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem;">${state}<button title="Remove" style="background: none; border: none; color: var(--text-tertiary); cursor: pointer; font-size: 1.1rem;" onclick="deleteReward(${r.id})">×</button></div>
+                        </div>
+                        <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden; margin-top: 0.5rem;"><div style="height: 100%; width: ${pct}%; background: var(--accent-fitness);"></div></div>
+                    </div>`;
+            }).join('');
+            const input = 'padding: 0.5rem; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 0.85rem;';
+            return `
+                <div id="rewardsCard" style="grid-column: 1 / -1; background: var(--bg-secondary); padding: 1.5rem 2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <h3 style="font-size: 1.25rem; font-weight: 500;">Your rewards</h3>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Pick a treat and how many things you have to finish to earn it. Pace counts them for you.</div>
+                    ${rows || '<div style="font-size: 0.85rem; color: var(--text-tertiary); padding: 0.5rem 0;">No rewards yet. Try "new shoes" after 10 fitness things.</div>'}
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1rem;">
+                        <input id="rewardName" placeholder="Reward (new shoes, a spa day…)" style="${input} flex: 2 1 200px;">
+                        <input id="rewardGoal" type="number" min="1" max="500" placeholder="How many" style="${input} width: 6.5rem;">
+                        <select id="rewardCategory" style="${input}"><option value="any">Anything</option><option value="fitness">Fitness</option><option value="work">Work</option><option value="family">Family &amp; Friends</option><option value="personal">Personal</option></select>
+                        <button class="control-btn" style="font-size: 0.85rem;" onclick="addReward()">Set reward</button>
+                    </div>
+                </div>`;
+        }
+
         // ---- Completing an occurrence (called from the event menu) ----
         function markAsComplete(eventId) {
             const event = scheduledEvents.find(e => e.id === eventId);
@@ -10476,7 +10616,10 @@ function parseQuickAddSimple() {
                 eventDone[key] = event.category;
                 showToast('Done ✓', '"' + event.title + '"', 'success');
                 saveToLocalStorage();
+                finishCheer(event.category);
                 growthToast(event.category, before);
+                checkRewardGoals();
+                if (dateKey === toDateKey(new Date())) checkDayClosed();
             }
             saveToLocalStorage();
             renderCurrentView();

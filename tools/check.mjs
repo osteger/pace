@@ -9,7 +9,9 @@ const aiIdx = process.argv.indexOf('--ai');
 const aiCommand = aiIdx > 0 ? process.argv[aiIdx + 1] : null;
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const PORT = 9333;
+import { waitPortFree, stopChrome } from './chrome-port.mjs';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pace-chrome-'));
+await waitPortFree(PORT);
 
 const chrome = spawn(CHROME, [
   '--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`,
@@ -147,7 +149,6 @@ check('no console errors', real.length === 0, real.join('\n    ') || `${ignored}
 for (const r of results) console.log(`${r.ok ? 'PASS' : 'FAIL'}  ${r.name}${r.detail ? '  (' + r.detail + ')' : ''}`);
 if (process.argv.includes('--logs')) console.log(logs.join('\n'));
 ws.close();
-chrome.kill();
-await sleep(500);
+await stopChrome(chrome, PORT);
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
 process.exit(results.every(r => r.ok) ? 0 : 1);

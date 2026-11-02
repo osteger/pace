@@ -6,7 +6,9 @@ import path from 'node:path';
 
 const url = process.argv[2] || 'http://localhost:8080/';
 const PORT = 9338;
+import { waitPortFree, stopChrome } from './chrome-port.mjs';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pace-install-'));
+await waitPortFree(PORT);
 const chrome = spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--no-first-run', 'about:blank'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let targets;
@@ -36,7 +38,7 @@ console.log('name / display :', parsed.name, '/', parsed.display);
 console.log('icons          :', iconChecks.join(', '));
 console.log('installable    :', errors.length ? 'NO: ' + errors.map(e => e.errorId).join(', ') : 'yes');
 
-ws.close(); chrome.kill(); await sleep(300);
+ws.close(); await stopChrome(chrome, PORT);
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
 const ok = !errors.length && !(manifest.result?.errors || []).length && iconChecks.every(c => c.endsWith('ok'));
 process.exit(ok ? 0 : 1);

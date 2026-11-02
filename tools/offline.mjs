@@ -6,7 +6,9 @@ import path from 'node:path';
 
 const url = process.argv[2] || 'http://localhost:8080/';
 const PORT = 9336;
+import { waitPortFree, stopChrome } from './chrome-port.mjs';
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'pace-off-'));
+await waitPortFree(PORT);
 const chrome = spawn('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', ['--headless=new', `--remote-debugging-port=${PORT}`, `--user-data-dir=${profile}`, '--no-first-run', 'about:blank'], { stdio: 'ignore' });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 let targets;
@@ -33,6 +35,6 @@ await send('Network.emulateNetworkConditions', { offline: true, latency: 0, down
 await send('Page.reload'); await sleep(3000);
 const offline = await ev(`JSON.stringify({ title: document.title, appRendered: !!document.getElementById('quickAddInput'), habits: dailyHabits.length })`);
 console.log('OFFLINE reload           :', offline);
-ws.close(); chrome.kill(); await sleep(300);
+ws.close(); await stopChrome(chrome, PORT);
 try { fs.rmSync(profile, { recursive: true, force: true }); } catch {}
 process.exit(offline && JSON.parse(offline).appRendered ? 0 : 1);
