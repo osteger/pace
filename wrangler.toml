@@ -1,0 +1,22 @@
+name = "pace-ai"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Pages allowed to call this proxy. Add your custom domain here if you ever move off GitHub Pages.
+ALLOWED_ORIGINS = "https://osteger.github.io,http://localhost:8080,http://127.0.0.1:8080"
+MODEL = "claude-sonnet-5-5"
+
+# 10 AI requests per minute per IP. Caps what a stranger can spend on your key.
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 10
+  period = 60
+
+# ANTHROPIC_API_KEY is a secret, never in this file:
+#   npx wrangler secret put ANTHROPIC_API_KEY
+# For local dev, put it in worker/.dev.vars (git-ignored).

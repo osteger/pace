@@ -1,5 +1,7 @@
 // Pace Service Worker - Offline Support
-const CACHE_NAME = 'pace-v1';
+// Network first: online you always get the latest deployed version, offline the last cached copy.
+// (This used to be cache-first with no refresh, so once installed, updates never reached the user.)
+const CACHE_NAME = 'pace-v2';
 const urlsToCache = [
   './',
   './index.html'
@@ -8,42 +10,39 @@ const urlsToCache = [
 // Install event - cache files
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
   self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline
+// Fetch event - network first, fall back to cache when offline
 self.addEventListener('fetch', event => {
+  const request = event.request;
+  // Only same-origin GETs; the AI proxy (POST, other origin) and fonts go straight to the network
+  if (request.method !== 'GET' || new URL(request.url).origin !== self.location.origin) return;
+
   event.respondWith(
-    caches.match(event.request)
+    fetch(request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
         }
-        return fetch(event.request);
-      }
-    )
+        return response;
+      })
+      .catch(() => caches.match(request).then(cached =>
+        cached || (request.mode === 'navigate' ? caches.match('./index.html') : undefined)
+      ))
   );
 });
 
-// Activate event - cleanup old caches
+// Activate event - cleanup old caches, take over open tabs right away
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys()
+      .then(cacheNames => Promise.all(
+        cacheNames.filter(name => name !== CACHE_NAME).map(name => caches.delete(name))
+      ))
+      .then(() => self.clients.claim())
   );
 });
