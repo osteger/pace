@@ -6731,7 +6731,9 @@ function parseQuickAddSimple() {
 
         const stamp = Date.now() + '' + ids[0];
         quickAddUndo[stamp] = ids;
-        const toastId = showToast(p.title + (weekDays.length > 1 ? ` (${weekDays.length} days)` : ''), describeQuickAdd(p), 'success',
+        const clashes = conflictsFor(scheduledEvents.filter(e => ids.includes(e.id)));
+        const message = describeQuickAdd(p) + (clashes.length ? `<br>⚠ Overlaps ${clashes.slice(0, 3).join(', ')}${clashes.length > 3 ? ` +${clashes.length - 3} more` : ''}` : '');
+        const toastId = showToast(p.title + (weekDays.length > 1 ? ` (${weekDays.length} days)` : ''), message, clashes.length ? 'warning' : 'success',
             [{ label: 'Undo', primary: true, onclick: `undoQuickAdd('${stamp}')` }]);
         setTimeout(() => dismissToast(toastId), 9000);
     } catch (error) {
@@ -9016,6 +9018,28 @@ function parseQuickAddSimple() {
             return true;
         }
 
+        // Existing events that overlap `fresh` (new events) at the same time on a day both occur, over the next 28 days.
+        // Returns "Title (9:00 AM)" strings, one per clashing event. Events that start/end back to back don't clash.
+        function conflictsFor(fresh) {
+            const freshIds = new Set(fresh.map(e => e.id));
+            const mins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const found = new Map();
+            const start = new Date(); start.setHours(12, 0, 0, 0);
+            for (let i = 0; i < 28; i++) {
+                const day = new Date(start); day.setDate(day.getDate() + i);
+                fresh.forEach(a => {
+                    if (!occursOn(a, day)) return;
+                    scheduledEvents.forEach(b => {
+                        if (freshIds.has(b.id) || found.has(b.id) || !occursOn(b, day)) return;
+                        if (mins(a.time) < mins(b.time) + b.duration && mins(b.time) < mins(a.time) + a.duration) {
+                            found.set(b.id, `${b.title} (${formatTime12Short(b.time)})`);
+                        }
+                    });
+                });
+            }
+            return [...found.values()];
+        }
+
         function eventsInWeek(weekStart) {
             const days = [];
             for (let i = 0; i < 7; i++) { const d = new Date(weekStart); d.setDate(d.getDate() + i); days.push(d); }
@@ -10381,7 +10405,12 @@ function parseQuickAddSimple() {
             } else {
                 const nextId = () => scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1;
                 const days = repeatMode === 'daily' ? [1, 2, 3, 4, 5, 6, 7] : repeatMode === 'weekdays' ? [1, 2, 3, 4, 5] : [day];
-                days.forEach(d => scheduledEvents.push({ id: nextId(), ...fields, day: d }));
+                const created = days.map(d => ({ id: nextId() + days.indexOf(d), ...fields, day: d }));
+                scheduledEvents.push(...created);
+                const clashes = conflictsFor(created);
+                if (clashes.length) {
+                    setTimeout(() => showToast('Heads up: overlap', `"${title}" overlaps ${clashes.slice(0, 3).join(', ')}`, 'warning'), 100);
+                }
                 const when = repeatMode === 'daily' ? 'every day'
                     : repeatMode === 'weekdays' ? 'every weekday'
                     : date ? new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })

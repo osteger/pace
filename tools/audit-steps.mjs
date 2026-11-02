@@ -309,6 +309,20 @@ export const steps = [
     Object.assign(WEEKLY_TARGETS, old); scheduledEvents = saved; saveToLocalStorage(); switchView('week'); renderWeekView();
     return 'ok';
   })()`, 300],
+  ['first job: double-booking is flagged, back-to-back is not', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('first job: ' + msg); };
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)); scheduledEvents = [];
+    const add = t => { document.getElementById('quickAddInput').value = t; parseQuickAdd(); return document.querySelector('#toastContainer .toast:last-child').textContent; };
+    add('gym every monday 6:30pm');
+    let t = add('gym every monday 6:30pm');
+    need(/Overlaps Gym \\(6:30 PM\\)/.test(t), 'duplicate gym not flagged: ' + t);
+    t = add('drinks every monday 7:30pm'); // starts exactly when gym ends
+    need(!/Overlaps/.test(t), 'back-to-back flagged as overlap: ' + t);
+    t = add('standup every monday 7pm 45 min');
+    need(/Overlaps/.test(t), 'partial overlap not flagged: ' + t);
+    scheduledEvents = saved; saveToLocalStorage(); renderCurrentView();
+    return 'ok';
+  })()`, 300],
   ['backup restore round trip', `(async () => {
     const backup = { version: '1.0', scheduledEvents: [{ id: 1, title: 'Restored', day: 3, time: '10:00', duration: 30, category: 'work' }], workouts: [{ id: 9, date: '2026-10-30', workoutName: 'Legs', exercises: [] }], dailyHabits: [{ id: 1, name: 'Restored habit', category: 'personal', completedDates: [] }], partners: [] };
     const { importFromJSON } = enhanceExportImport();

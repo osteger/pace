@@ -68,7 +68,7 @@ Not verified: real-key AI calls, the deployed site, iOS Safari specifically.
 3. Several features use `alert()`/`confirm()`; move to toasts/modals.
 4. Planned: user accounts + partner/family sharing (Firebase or Supabase). Sharing UI is already built but hidden (see layout notes).
 5. Reminders only fire while Pace is open in a tab; with the app closed they'd need a backend (push).
-8. UX wishlist from hands-on reviews (Nov 2026): "Mark as Completed" on a repeating event marks every week (store completion per date); habits are buried at the bottom of the right panel; AI errors show raw "Failed to fetch"; event menu doesn't say whether it repeats; week-view blocks don't scale with event length; no overlap/double-booking warning (Quick Add will happily add a second "Gym" at the same time); bulk edit is desktop-only.
+8. UX wishlist from hands-on reviews (Nov 2026): "Mark as Completed" on a repeating event marks every week (store completion per date); habits are buried at the bottom of the right panel; AI errors show raw "Failed to fetch"; event menu doesn't say whether it repeats; week-view blocks don't scale with event length; bulk edit is desktop-only; events can't span days ("weekend trip" is one hour on Saturday). Overlaps are flagged (not blocked) by `conflictsFor()` in Quick Add and the event form.
 6. Editing one day of an "every day" event only edits that day (they're 7 separate weekly events).
 7. The file is too large to maintain safely as one blob; consider splitting into `styles.css` / `app.js` modules.
 
