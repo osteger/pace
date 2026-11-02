@@ -6,7 +6,7 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 ## Files
 - `index.html` — the entire app: HTML, CSS and JS in one ~12k-line file. No build step.
 - `service-worker.js` — PWA offline caching, network-first (online gets the latest deploy, offline the cached copy). Only registers over HTTPS or localhost. Bump `CACHE_NAME` if you ever change caching strategy.
-- `manifest.json` + `icons/` — make Pace installable as an app (Chrome/Edge "Install", iPhone "Add to Home Screen"). Icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg` by `node tools/render-icons.mjs`; edit the SVGs, never the PNGs. The installed app shares localStorage with the site in that browser, so it sees the same data.
+- `manifest.json` + `icons/` — make Pace installable as an app (Chrome/Edge "Install", iPhone "Add to Home Screen"). Icons are rendered from `icons/icon.svg` and `icons/icon-maskable.svg` by `node tools/render-icons.mjs`; edit the SVGs, never the PNGs. It also writes `icons/pace.ico`, used by Onno's desktop/Start menu shortcuts (copied to `%LOCALAPPDATA%\Pace\pace.ico`; they run `chrome.exe --app=https://osteger.github.io/pace/`). The installed app shares localStorage with the site in that browser, so it sees the same data.
 - `worker/` — Cloudflare Worker AI proxy (`src/index.js`, `wrangler.toml`). Holds the Anthropic API key as a Wrangler secret, owns the prompt/model/token cap, validates events in and out. The browser sends only `{ request, today, events }` and gets back `{ events }`. Origin allowlist + 10 req/min/IP rate limit live in `wrangler.toml`.
 
 ## AI proxy
