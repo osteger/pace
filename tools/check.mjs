@@ -99,7 +99,7 @@ if (process.argv.includes('--routing')) {
       'football practice saturday 10am': 'simple', 'all day offsite friday': 'simple',
       'workout tomorrow 6am': 'simple', 'dinner with ball team thursday 7pm': 'simple',
       'add a break after each meeting': 'AI', 'warmup before every workout': 'AI',
-      'add stretching after all workouts': 'AI', 'standup every weekday at 9am': 'AI',
+      'add stretching after all workouts': 'AI', 'standup every weekday at 9am': 'simple', 'bedtime routine every evening 7:30pm': 'simple',
       'meditate each morning': 'AI', 'block all meetings for focus': 'AI'
     };
     const out = [];

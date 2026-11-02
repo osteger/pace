@@ -192,7 +192,9 @@
             margin-bottom: 0.5rem;
         }
 
-        .balance-score {
+        /* Sidebar score number. Scoped: the right panel's #balanceContent .balance-score is a different
+           widget, and sharing one selector made this number invisible (dark background, transparent text). */
+        .balance-indicator .balance-score {
             font-size: 2.5rem;
             font-weight: 300;
             margin-bottom: 0.5rem;
@@ -3017,7 +3019,7 @@
             }
 
             .event-time {
-                display: none; /* Hide time on very small screens */
+                font-size: 0.55rem; /* keep the start time on very small screens */
             }
 
             .event-title {
@@ -3914,7 +3916,7 @@
             transition: width 0.5s ease;
         }
         
-        .balance-score {
+        #balanceContent .balance-score {
             text-align: center;
             padding: 1.5rem;
             background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-secondary));
@@ -4511,6 +4513,16 @@
         }
 
         .upcoming-empty { font-size: 0.8rem; color: var(--text-tertiary); padding: 0.5rem 0; }
+
+        /* Week grid: rows grow with their events instead of squeezing to the window */
+        .week-grid { grid-auto-rows: minmax(80px, auto); }
+        .week-grid > .day-header, .week-grid > .time-label:first-child { grid-row: auto; }
+        @media (max-width: 768px) {
+            .week-grid {
+                grid-template-columns: 44px repeat(7, minmax(88px, 1fr));
+                overflow-x: auto;
+            }
+        }
     </style>
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#0a0a0a">
@@ -4607,36 +4619,36 @@ Note: Service Workers only work over HTTPS or on localhost
                             <div class="category-dot has-upcoming" style="background: var(--accent-fitness);"></div>
                             <span>Fitness</span>
                         </div>
-                        <span class="category-hours">12h</span>
+                        <span class="category-hours">0h</span>
                     </div>
                     <div class="nav-item category-item" onclick="filterByCategory('work')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <div class="category-dot has-upcoming" style="background: var(--accent-work);"></div>
                             <span>Work</span>
                         </div>
-                        <span class="category-hours">48h</span>
+                        <span class="category-hours">0h</span>
                     </div>
                     <div class="nav-item category-item" onclick="filterByCategory('family')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <div class="category-dot has-upcoming" style="background: var(--accent-family);"></div>
                             <span>Family</span>
                         </div>
-                        <span class="category-hours">18h</span>
+                        <span class="category-hours">0h</span>
                     </div>
                     <div class="nav-item category-item" onclick="filterByCategory('personal')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <div class="category-dot" style="background: var(--accent-personal);"></div>
                             <span>Personal</span>
                         </div>
-                        <span class="category-hours">8h</span>
+                        <span class="category-hours">0h</span>
                     </div>
                 </nav>
 
                 <div class="balance-indicator">
-                    <div class="balance-score">87</div>
+                    <div class="balance-score">0</div>
                     <div class="balance-label">Balance Score</div>
                     <div class="balance-trend">
-                        <div class="trend-label">30 Day Trend</div>
+                        <div class="trend-label">Last 8 Weeks</div>
                         <div class="sparkline">
                             <div class="sparkline-bar" style="height: 60%;"></div>
                             <div class="sparkline-bar" style="height: 65%;"></div>
@@ -4734,36 +4746,36 @@ Note: Service Workers only work over HTTPS or on localhost
                         <div class="category-dot has-upcoming" style="background: var(--accent-fitness);"></div>
                         <span>Fitness</span>
                     </div>
-                    <span class="category-hours">12h</span>
+                    <span class="category-hours">0h</span>
                 </div>
                 <div class="nav-item category-item" onclick="filterByCategory('work')">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="category-dot has-upcoming" style="background: var(--accent-work);"></div>
                         <span>Work</span>
                     </div>
-                    <span class="category-hours">48h</span>
+                    <span class="category-hours">0h</span>
                 </div>
                 <div class="nav-item category-item" onclick="filterByCategory('family')">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="category-dot has-upcoming" style="background: var(--accent-family);"></div>
                         <span>Family</span>
                     </div>
-                    <span class="category-hours">18h</span>
+                    <span class="category-hours">0h</span>
                 </div>
                 <div class="nav-item category-item" onclick="filterByCategory('personal')">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div class="category-dot" style="background: var(--accent-personal);"></div>
                         <span>Personal</span>
                     </div>
-                    <span class="category-hours">8h</span>
+                    <span class="category-hours">0h</span>
                 </div>
             </nav>
 
             <div class="balance-indicator">
-                <div class="balance-score">87</div>
+                <div class="balance-score">0</div>
                 <div class="balance-label">Balance Score</div>
                 <div class="balance-trend">
-                    <div class="trend-label">30 Day Trend</div>
+                    <div class="trend-label">Last 8 Weeks</div>
                     <div class="sparkline">
                         <div class="sparkline-bar" style="height: 60%;"></div>
                         <div class="sparkline-bar" style="height: 65%;"></div>
@@ -5179,15 +5191,8 @@ Note: Service Workers only work over HTTPS or on localhost
 
             <div class="panel-section">
                 <div class="panel-title">This Week</div>
-                <div class="stat-card">
-                    <div class="stat-value">6/6</div>
-                    <div class="stat-label">Workouts Completed</div>
-                    <div class="stat-change">↑ 2 from last week</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value">18h</div>
-                    <div class="stat-label">Family Time</div>
-                    <div class="stat-change">↑ Target met</div>
+                <div id="weekStats">
+                    <!-- Rendered by updateBalanceDisplay() -->
                 </div>
             </div>
 
@@ -5359,8 +5364,16 @@ Note: Service Workers only work over HTTPS or on localhost
                 <select class="form-select" id="eventRepeatMode" onchange="updateRepeatFields()">
                     <option value="once">Just once</option>
                     <option value="weekly">Every week</option>
+                    <option value="weekdays">Every weekday (Mon–Fri)</option>
                     <option value="daily">Every day</option>
                 </select>
+            </div>
+
+            <div class="form-group" id="eventApplyOthersGroup" style="display: none;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; cursor: pointer;">
+                    <input type="checkbox" id="eventApplyOthers">
+                    <span id="eventApplyOthersLabel">Also change the other days</span>
+                </label>
             </div>
 
             <div class="form-group" id="eventDateGroup">
@@ -5392,14 +5405,22 @@ Note: Service Workers only work over HTTPS or on localhost
                     <option value="15">15 minutes</option>
                     <option value="30">30 minutes</option>
                     <option value="45">45 minutes</option>
-                    <option value="60">1 hour</option>
+                    <option value="60" selected>1 hour</option>
                     <option value="75">1 hour 15 min</option>
-                    <option value="90" selected>1 hour 30 min</option>
+                    <option value="90">1 hour 30 min</option>
                     <option value="105">1 hour 45 min</option>
                     <option value="120">2 hours</option>
                     <option value="150">2 hours 30 min</option>
                     <option value="180">3 hours</option>
                     <option value="240">4 hours</option>
+                    <option value="300">5 hours</option>
+                    <option value="360">6 hours</option>
+                    <option value="420">7 hours</option>
+                    <option value="480">8 hours</option>
+                    <option value="540">9 hours</option>
+                    <option value="600">10 hours</option>
+                    <option value="660">11 hours</option>
+                    <option value="720">12 hours</option>
                 </select>
             </div>
 
@@ -6375,9 +6396,9 @@ function parseQuickAdd() {
         const batchPatterns = [
             /\b(before|after)\s+(each|all|every)\b/,
             /\beach\b/,
-            /\ball\b(?!\s+day)/, // "all day offsite" is a single event
-            /\bevery\s+(weekday|morning|evening|day)\b/
+            /\ball\b(?!\s+day)/ // "all day offsite" is a single event
         ];
+        // "every weekday" / "every evening" / "every day" are not batch edits: the fast parser makes those events itself
 
         const needsAI = batchPatterns.some(pattern => pattern.test(input_lower));
         
@@ -6432,7 +6453,26 @@ function parseQuickAddSimple() {
     let date = new Date(today);
     let day = today.getDay() || 7;
 
-    if (/\btomorrow\b/.test(lower)) {
+    // Typed dates: "Nov 12", "november 12th", "11/12" (a date already past this year means next year)
+    const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const monthRe = /\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/;
+    const monthMatch = lower.match(monthRe);
+    const slashMatch = lower.match(/\b(\d{1,2})\/(\d{1,2})\b/);
+    let typedDate = null;
+    if (monthMatch) typedDate = { month: monthNames.indexOf(monthMatch[1].slice(0, 3)), dom: parseInt(monthMatch[2]), text: monthMatch[0] };
+    else if (slashMatch) typedDate = { month: parseInt(slashMatch[1]) - 1, dom: parseInt(slashMatch[2]), text: slashMatch[0] };
+    if (typedDate && !(typedDate.month >= 0 && typedDate.month < 12 && typedDate.dom >= 1 && typedDate.dom <= 31)) typedDate = null;
+
+    // Daily-style repeats are handled here (no AI needed): "every weekday", "every day/morning/evening", "daily"
+    const repeatAll = /\b(every\s+(day|morning|evening|night)|daily)\b/.test(lower);
+    const repeatWeekdays = /\b(every\s+weekday|weekdays)\b/.test(lower);
+
+    if (typedDate) {
+        date = new Date(today.getFullYear(), typedDate.month, typedDate.dom);
+        const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (date < startOfToday) date = new Date(today.getFullYear() + 1, typedDate.month, typedDate.dom);
+        day = date.getDay() || 7;
+    } else if (/\btomorrow\b/.test(lower)) {
         date.setDate(today.getDate() + 1);
         day = date.getDay() || 7;
     } else if (dayWord) {
@@ -6442,12 +6482,35 @@ function parseQuickAddSimple() {
     }
 
     // Time: prefer "6pm" / "6:30am", then "18:30", then "at 6"
-    const timeMatch = input.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i)
-        || input.match(/\b(\d{1,2}):(\d{2})\b/)
-        || input.match(/\bat\s+(\d{1,2})\b/i);
-    let time = '09:00';
+    // A range wins over a single time: "8am to 5pm", "6-7:30pm", "9:00-17:00". The start borrows the end's am/pm if it has none.
+    const rangeRe = /\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:to|until|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/i;
+    let rangeMatch = input.match(rangeRe);
+    let rangeStart = null, rangeMinutes = null;
+    if (rangeMatch && !(rangeMatch[3] || rangeMatch[6] || rangeMatch[2] || rangeMatch[5])) rangeMatch = null; // "5-10" alone is not a time
+    if (rangeMatch) {
+        const to24 = (h, m, mer) => {
+            h = parseInt(h);
+            if (mer === 'pm' && h < 12) h += 12;
+            if (mer === 'am' && h === 12) h = 0;
+            return h * 60 + parseInt(m || '0');
+        };
+        const endMer = rangeMatch[6]?.toLowerCase();
+        const startMer = rangeMatch[3]?.toLowerCase() || endMer;
+        let start = to24(rangeMatch[1], rangeMatch[2], startMer);
+        const end = to24(rangeMatch[4], rangeMatch[5], endMer);
+        if (!rangeMatch[3] && start > end) start -= 12 * 60; // "11-1pm" starts at 11am, not 11pm
+        if (start >= 0 && end > start && end - start <= 24 * 60) { rangeStart = start; rangeMinutes = end - start; }
+        else rangeMatch = null;
+    }
 
-    if (timeMatch) {
+    const timeMatch = rangeMatch ? null : (input.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)\b/i)
+        || input.match(/\b(\d{1,2}):(\d{2})\b/)
+        || input.match(/\bat\s+(\d{1,2})\b/i));
+    let time = /\bevery\s+(evening|night)\b/.test(lower) ? '19:00' : /\bevery\s+morning\b/.test(lower) ? '07:00' : '09:00';
+
+    if (rangeStart !== null) {
+        time = `${String(Math.floor(rangeStart / 60)).padStart(2, '0')}:${String(rangeStart % 60).padStart(2, '0')}`;
+    } else if (timeMatch) {
         let hour = parseInt(timeMatch[1]);
         const minute = timeMatch[2] || '00';
         const meridiem = timeMatch[3]?.toLowerCase();
@@ -6461,20 +6524,24 @@ function parseQuickAddSimple() {
     // Duration: "2h", "1.5 hours", "45 min"
     const hoursMatch = input.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hr|hrs|hour|hours)\b/i);
     const minsMatch = input.match(/\b(\d+)\s*(?:m|min|mins|minutes)\b/i);
-    const duration = hoursMatch ? Math.round(parseFloat(hoursMatch[1]) * 60) : minsMatch ? parseInt(minsMatch[1]) : 60;
+    const duration = rangeMinutes !== null ? rangeMinutes
+        : hoursMatch ? Math.round(parseFloat(hoursMatch[1]) * 60) : minsMatch ? parseInt(minsMatch[1]) : 60;
 
-    // Extract category
+    // Extract category. Family words are checked first so "kids swim lessons" and "call mom" don't read as fitness/work.
     let category = 'personal';
-    if (/\b(workout|gym|exercise|run|yoga|lift|swim|bike)\b/.test(lower)) {
-        category = 'fitness';
-    } else if (/\b(meeting|work|call|standup|review)\b/.test(lower)) {
-        category = 'work';
-    } else if (/\b(family|dinner|kids|date night)\b/.test(lower)) {
+    if (/\b(family|kids?|dinner|date night|mom|dad|grandma|grandpa|grandparents|soccer|practice|lessons?|recital|school|drop-?off|pick-?up|bedtime|homework|dentist|doctor|pediatrician|birthday|playdate|park|wife|husband|son|daughter)\b/.test(lower)) {
         category = 'family';
+    } else if (/\b(workout|gym|exercise|run|running|yoga|lift|lifting|swim|bike|cycling|hike|stretch|pilates|crossfit)\b/.test(lower)) {
+        category = 'fitness';
+    } else if (/\b(meeting|work|call|standup|review|office|client|deadline|commute|presentation|1:1)\b/.test(lower)) {
+        category = 'work';
     }
 
     // Title: what's left after removing the when/how-long words
     let title = input
+        .replace(rangeMatch ? rangeRe : /$^/, '')
+        .replace(typedDate ? new RegExp(typedDate.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') : /$^/, '')
+        .replace(/\bevery\s+(weekday|day|morning|evening|night)\b|\bweekdays\b|\bdaily\b/gi, '')
         .replace(/\bat\s+\d{1,2}(?::\d{2})?\s*(?:am|pm)?\b/gi, '')
         .replace(new RegExp(`\\b(on|every)\\s+(?=${dayPattern})`, 'gi'), '')
         .replace(new RegExp(`\\b${dayPattern}s?\\b`, 'gi'), '')
@@ -6488,24 +6555,21 @@ function parseQuickAddSimple() {
     if (!title) title = 'New Event';
     title = title.charAt(0).toUpperCase() + title.slice(1);
 
-    // Create event: one-off on that date unless it was phrased as repeating
-    const newEvent = {
-        id: scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1,
-        title: title,
-        day: day,
-        time: time,
-        duration: duration,
-        category: category
-    };
-    if (!weekly) newEvent.date = toDateKey(date);
-    
-    scheduledEvents.push(newEvent);
+    // Create event(s): "every weekday"/"every day" make one weekly event per day; otherwise one-off on that
+    // date unless it was phrased as repeating
+    const days = repeatAll ? [1, 2, 3, 4, 5, 6, 7] : repeatWeekdays ? [1, 2, 3, 4, 5] : [day];
+    let nextId = scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1;
+    days.forEach(d => {
+        const newEvent = { id: nextId++, title: title, day: d, time: time, duration: duration, category: category };
+        if (!weekly && days.length === 1) newEvent.date = toDateKey(date);
+        scheduledEvents.push(newEvent);
+    });
     saveToLocalStorage();
     renderWeekView();
     updateBalanceDisplay();
-    
+
     hideLoading();
-    showToast('Event Added', title, 'success');
+    showToast('Event Added', days.length > 1 ? `${title} (${days.length} days a week)` : title, 'success');
     document.getElementById('quickAddInput').value = '';
     } catch (error) {
         hideLoading();
@@ -6843,7 +6907,7 @@ function parseQuickAddSimple() {
                 closeWorkoutLogModal();
                 closeWorkoutHistoryModal();
                 closeWorkoutDetailModal();
-                closeHabitModal();
+                if (typeof closeAddHabitModal === 'function') closeAddHabitModal();
                 closeEventActionModal();
                 
                 // Close habit tracker panel
@@ -6939,8 +7003,9 @@ function parseQuickAddSimple() {
             // Initialize habit category progress
             updateHabitCategoryProgress();
             
-            // Generate smart notifications periodically (every 5 minutes)
-            setInterval(generateSmartNotifications, 300000);
+            // Event reminders: check every minute (only works while Pace is open; a web page can't wake itself up)
+            generateSmartNotifications();
+            setInterval(generateSmartNotifications, 60000);
             
             setTimeout(() => {
                 document.querySelectorAll('.bar-fill').forEach(bar => {
@@ -7235,10 +7300,13 @@ function parseQuickAddSimple() {
         let lastUsedCategory = 'fitness'; // Remember last category
         
         // Toast Notification System
+        let toastCounter = 0;
         function showToast(title, message, type = 'success', actions = null) {
             const container = document.getElementById('toastContainer');
-            const toastId = 'toast-' + Date.now();
-            
+            // Unique ids (several toasts in the same millisecond used to share one) and at most 3 on screen
+            const toastId = 'toast-' + Date.now() + '-' + (++toastCounter);
+            while (container.children.length >= 3) container.firstElementChild.remove();
+
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.id = toastId;
@@ -7350,20 +7418,23 @@ function parseQuickAddSimple() {
         // Enhanced habit rendering with streaks and insights
         function renderHabits() {
             updateHabitBadge();
-            const container = document.getElementById('habitsList');
-            if (!container) return;
-            
+            // The list lives in the desktop sidebar (#habitsList) and in the ✓ panel (#habitTrackerContent, the
+            // only one reachable on a phone). Fill both from the same markup.
+            const targets = [document.getElementById('habitsList'), document.getElementById('habitTrackerContent')].filter(Boolean);
+            if (!targets.length) return;
+            const setHTML = html => targets.forEach(t => { t.innerHTML = html; });
+            const addButton = `<button class="control-btn" style="margin: 0.75rem 0; width: 100%;" onclick="openAddHabitModal()">+ Add Habit</button>`;
+
             if (dailyHabits.length === 0) {
-                container.innerHTML = `
+                setHTML(addButton + `
                     <div style="text-align: center; padding: 2rem 1rem; color: var(--text-tertiary);">
                         <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎯</div>
                         <div style="font-size: 0.9rem;">No habits yet</div>
                         <div style="font-size: 0.8rem; margin-top: 0.5rem;">Click "Add Habit" to start tracking</div>
                     </div>
-                `;
+                `);
                 return;
             }
-            if (!container) return;
             
             // Group habits by category
             const habitsByCategory = dailyHabits.reduce((acc, habit) => {
@@ -7421,15 +7492,15 @@ function parseQuickAddSimple() {
                 
                 html += `
                     <div class="habit-category-section">
-                        <div class="habit-category-header" onclick="toggleHabitCategory('${category}')">
+                        <div class="habit-category-header" onclick="toggleHabitCategory(this)">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <div style="width: 12px; height: 12px; border-radius: 50%; background: ${categoryColors[category]};"></div>
                                 <span style="text-transform: capitalize; font-weight: 600;">${category}</span>
                                 <span style="opacity: 0.6; font-size: 0.85rem;">${categoryCompleted}/${habits.length}</span>
                             </div>
-                            <span class="category-collapse-icon" id="collapse-${category}">▼</span>
+                            <span class="category-collapse-icon">▼</span>
                         </div>
-                        <div class="habit-list" id="habits-${category}">
+                        <div class="habit-list">
                 `;
                 
                 habits.forEach(habit => {
@@ -7473,9 +7544,11 @@ function parseQuickAddSimple() {
                 `;
             });
             
-            container.innerHTML = html;
+            setHTML(html);
+            const panelContent = document.getElementById('habitTrackerContent');
+            if (panelContent) panelContent.insertAdjacentHTML('beforeend', addButton);
         }
-        
+
         function calculateStreak(completedDates) {
             if (!completedDates || completedDates.length === 0) return 0;
             
@@ -7533,10 +7606,11 @@ function parseQuickAddSimple() {
             return days;
         }
         
-        function toggleHabitCategory(category) {
-            const list = document.getElementById(`habits-${category}`);
-            const icon = document.getElementById(`collapse-${category}`);
-            
+        function toggleHabitCategory(header) {
+            // The list is rendered twice (sidebar + ✓ panel), so find the elements from the clicked header, not by id
+            const list = header.nextElementSibling;
+            const icon = header.querySelector('.category-collapse-icon');
+
             if (list.classList.contains('collapsed')) {
                 list.classList.remove('collapsed');
                 icon.classList.remove('collapsed');
@@ -7674,6 +7748,23 @@ function parseQuickAddSimple() {
             const mode = document.getElementById('eventRepeatMode').value;
             document.getElementById('eventDateGroup').style.display = mode === 'once' ? '' : 'none';
             document.getElementById('eventDayGroup').style.display = mode === 'weekly' ? '' : 'none';
+            // Editing one day of a repeating series: offer to change its sibling days too
+            const group = document.getElementById('eventApplyOthersGroup');
+            const siblings = window.editingEventId && mode === 'weekly' ? seriesSiblings(window.editingEventId) : [];
+            group.style.display = siblings.length ? '' : 'none';
+            if (!siblings.length) document.getElementById('eventApplyOthers').checked = false;
+            document.getElementById('eventApplyOthersLabel').textContent =
+                `Also change the other ${siblings.length} day${siblings.length === 1 ? '' : 's'} (${siblings.map(e => getDayNameShort(e.day)).join(', ')})`;
+        }
+
+        // Other weekly events that look like the same series (same title, time, length and category),
+        // e.g. the 7 events "Every day" creates or the 5 from "Every weekday".
+        function seriesSiblings(eventId) {
+            const e = scheduledEvents.find(x => x.id === eventId);
+            if (!e || e.date) return [];
+            return scheduledEvents
+                .filter(o => o.id !== e.id && !o.date && o.title === e.title && o.time === e.time && o.duration === e.duration && o.category === e.category)
+                .sort((a, b) => a.day - b.day);
         }
 
         // Quick Add Natural Language Parser
@@ -8468,6 +8559,8 @@ function parseQuickAddSimple() {
             const badge = document.getElementById('notificationBadge');
             const bell = document.getElementById('notificationBell');
             
+            // The bell lives in the week view's header, so it doesn't exist while month/day/goals is showing
+            if (!badge || !bell) return;
             if (unreadCount > 0) {
                 badge.textContent = unreadCount;
                 badge.style.display = 'flex';
@@ -8480,9 +8573,11 @@ function parseQuickAddSimple() {
 
         function renderNotifications() {
             const container = document.getElementById('notificationsContent');
-            
+            const sysButton = ('Notification' in window && Notification.permission === 'default')
+                ? `<button class="control-btn" style="margin: 0.75rem; width: calc(100% - 1.5rem);" onclick="enableSystemNotifications()">Allow system notifications</button>` : '';
+
             if (notifications.length === 0) {
-                container.innerHTML = `
+                container.innerHTML = sysButton + `
                     <div class="notifications-empty">
                         <div class="notifications-empty-icon">🔔</div>
                         <div>No notifications yet</div>
@@ -8491,7 +8586,7 @@ function parseQuickAddSimple() {
                 return;
             }
 
-            container.innerHTML = notifications.map(notification => `
+            container.innerHTML = sysButton + notifications.map(notification => `
                 <div class="notification-item ${notification.type} ${notification.unread ? 'unread' : ''}" onclick="handleNotificationClick(${notification.id})">
                     <div class="notification-icon">${notification.icon}</div>
                     <div class="notification-title">${notification.title}</div>
@@ -8570,32 +8665,42 @@ function parseQuickAddSimple() {
 
         // Generate smart notifications based on user activity
         function generateSmartNotifications() {
+            // Remind once per event per day, when it starts within the next 30 minutes
             const now = new Date();
-            const currentHour = now.getHours();
+            const nowMinutes = now.getHours() * 60 + now.getMinutes();
+            const todayKey = toDateKey(now);
+            remindedKeys = remindedKeys.filter(k => k.endsWith(todayKey));
 
-            // Check if user has workout scheduled soon
-            const upcomingWorkouts = scheduledEvents.filter(event => {
-                const eventHour = parseInt(event.time.split(':')[0]);
-                return event.category === 'fitness' &&
-                       occursOn(event, now) &&
-                       eventHour > currentHour && 
-                       eventHour <= currentHour + 2;
-            });
+            scheduledEvents.forEach(event => {
+                if (!occursOn(event, now)) return;
+                const [h, m] = event.time.split(':').map(Number);
+                const minutesUntil = h * 60 + m - nowMinutes;
+                const key = `${event.id}@${todayKey}`;
+                if (minutesUntil < 0 || minutesUntil > 30 || remindedKeys.includes(key)) return;
+                remindedKeys.push(key);
 
-            if (upcomingWorkouts.length > 0) {
-                const workout = upcomingWorkouts[0];
-                const timeUntil = parseInt(workout.time.split(':')[0]) - currentHour;
+                const when = minutesUntil === 0 ? 'now' : `in ${minutesUntil} min`;
                 addNotification({
                     type: 'reminder',
                     icon: '⏰',
-                    title: `${workout.title} in ${timeUntil} hour${timeUntil > 1 ? 's' : ''}`,
-                    message: 'Get ready! Your workout is coming up soon.',
-                    actions: [
-                        { label: 'I\'m Ready', action: 'dismiss', primary: true }
-                    ]
+                    title: `${event.title} ${when}`,
+                    message: `Starts at ${event.time}`
                 });
-            }
+                showToast(`${event.title} ${when}`, `Starts at ${event.time}`, 'info');
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try { new Notification(`${event.title} ${when}`, { body: `Starts at ${event.time}` }); } catch {}
+                }
+            });
+        }
+        let remindedKeys = [];
 
+        // System notifications need the browser's permission; this is offered from the bell panel
+        function enableSystemNotifications() {
+            if (!('Notification' in window)) { showToast('Not supported', 'This browser has no system notifications', 'warning'); return; }
+            Notification.requestPermission().then(p => {
+                showToast(p === 'granted' ? 'Notifications on' : 'Notifications off',
+                    p === 'granted' ? 'You will get a system alert before events while Pace is open' : 'Permission was not granted', p === 'granted' ? 'success' : 'warning');
+            });
         }
 
         function addNotification(notification) {
@@ -8779,188 +8884,182 @@ function parseQuickAddSimple() {
             }).join('');
         }
 
-        // Balance calculation
-        function calculateBalance() {
-            const weeklyTargets = {
-                fitness: 12,    // 12 hours per week
-                work: 40,       // 40 hours per week
-                family: 15,     // 15 hours per week
-                personal: 10    // 10 hours per week
-            };
+        // Balance: ONE calculation, every widget reads it (sidebar, mobile menu, right panel, category popup).
+        // Per category: hitting the weekly target scores 100; under scores the share reached; going over
+        // loses points too (double the target scores 0), so a 60h work week doesn't count as balanced.
+        const WEEKLY_TARGETS = { fitness: 12, work: 40, family: 15, personal: 10 };
+        const BALANCE_CATEGORIES = Object.keys(WEEKLY_TARGETS);
 
-            const categoryHours = {
-                fitness: 0,
-                work: 0,
-                family: 0,
-                personal: 0
-            };
+        function calculateBalance(weekStart = getWeekStart(currentDate)) {
+            const events = eventsInWeek(weekStart);
+            const hours = { fitness: 0, work: 0, family: 0, personal: 0 };
+            events.forEach(event => {
+                if (hours.hasOwnProperty(event.category)) hours[event.category] += (event.duration || 60) / 60;
+            });
 
-            // Calculate total hours per category for the week being viewed
-            eventsInWeek(getWeekStart(currentDate)).forEach(event => {
-                if (categoryHours.hasOwnProperty(event.category)) {
-                    categoryHours[event.category] += event.duration / 60;
+            const percentages = {}; // share of target reached, capped at 100 (bar widths)
+            const ofTarget = {};    // uncapped, e.g. 125 when 25% over
+            const scores = {};
+            BALANCE_CATEGORIES.forEach(cat => {
+                const ratio = hours[cat] / WEEKLY_TARGETS[cat];
+                ofTarget[cat] = ratio * 100;
+                percentages[cat] = Math.min(ratio * 100, 100);
+                scores[cat] = ratio <= 1 ? ratio * 100 : Math.max(0, (2 - ratio) * 100);
+            });
+            const score = Math.round(BALANCE_CATEGORIES.reduce((sum, cat) => sum + scores[cat], 0) / BALANCE_CATEGORIES.length);
+
+            return { score, percentages, ofTarget, scores, hours, targets: WEEKLY_TARGETS, events };
+        }
+
+        function balanceRating(score) {
+            if (score >= 90) return ['Excellent', 'Your week hits every target'];
+            if (score >= 75) return ['Good', 'Close to your targets'];
+            if (score >= 50) return ['Fair', 'Some areas are under or over target'];
+            return ['Needs Work', 'Far from your weekly targets'];
+        }
+
+        function formatHours(h) {
+            return (Math.round(h * 10) / 10) + 'h';
+        }
+
+        function updateBalanceDisplay() {
+            const weekStart = getWeekStart(currentDate);
+            const lastWeekStart = new Date(weekStart);
+            lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+            const b = calculateBalance(weekStart);
+            const last = calculateBalance(lastWeekStart);
+            const colors = { fitness: 'var(--accent-fitness)', work: 'var(--accent-work)', family: 'var(--accent-family)', personal: 'var(--accent-personal)' };
+
+            // Sidebar + mobile menu (two copies of the same markup, so select by class, not id)
+            document.querySelectorAll('.category-item').forEach(item => {
+                const cat = (item.getAttribute('onclick') || '').match(/filterByCategory\('(\w+)'\)/)?.[1];
+                const label = item.querySelector('.category-hours');
+                if (cat && label) {
+                    label.textContent = formatHours(b.hours[cat]);
+                    label.title = `${formatHours(b.hours[cat])} of ${WEEKLY_TARGETS[cat]}h weekly target`;
+                }
+            });
+            document.querySelectorAll('.balance-indicator').forEach(panel => {
+                const scoreEl = panel.querySelector('.balance-score');
+                if (scoreEl) scoreEl.textContent = b.score;
+                panel.querySelectorAll('.balance-bar').forEach(bar => {
+                    const cat = bar.querySelector('.bar-label')?.textContent.trim().toLowerCase();
+                    if (!WEEKLY_TARGETS[cat]) return;
+                    const fill = bar.querySelector('.bar-fill');
+                    if (fill) fill.style.width = b.percentages[cat] + '%';
+                    const pct = bar.querySelector('.bar-percentage');
+                    if (pct) pct.textContent = Math.round(b.ofTarget[cat]) + '%';
+                    bar.title = `${formatHours(b.hours[cat])} of ${WEEKLY_TARGETS[cat]}h target`;
+                });
+                // Trend: the real score of each of the last 8 weeks, ending with the week being viewed
+                const label = panel.querySelector('.trend-label');
+                if (label) label.textContent = 'Last 8 Weeks';
+                const sparkline = panel.querySelector('.sparkline');
+                if (sparkline) {
+                    let bars = '';
+                    for (let i = 7; i >= 0; i--) {
+                        const ws = new Date(weekStart);
+                        ws.setDate(ws.getDate() - 7 * i);
+                        const s = calculateBalance(ws).score;
+                        bars += `<div class="sparkline-bar${i === 0 ? ' current' : ''}" style="height: ${Math.max(s, 4)}%;" title="Week of ${formatDate(ws)}: ${s}"></div>`;
+                    }
+                    sparkline.innerHTML = bars;
                 }
             });
 
-            // Calculate percentage of target met for each category
-            const percentages = {};
-            let totalScore = 0;
-            let categoryCount = 0;
-
-            for (let category in weeklyTargets) {
-                const percentage = Math.min((categoryHours[category] / weeklyTargets[category]) * 100, 100);
-                percentages[category] = percentage;
-                totalScore += percentage;
-                categoryCount++;
+            // "This Week" cards in the right panel
+            const weekStats = document.getElementById('weekStats');
+            if (weekStats) {
+                weekStats.innerHTML = ['fitness', 'family'].map(cat => {
+                    const h = b.hours[cat], t = WEEKLY_TARGETS[cat];
+                    const status = h >= t ? 'Target met' : `${formatHours(t - h)} to go`;
+                    return `
+                        <div class="stat-card">
+                            <div class="stat-value">${formatHours(h)}</div>
+                            <div class="stat-label">${cat === 'fitness' ? 'Fitness' : 'Family Time'} (target ${t}h)</div>
+                            <div class="stat-change">${status}</div>
+                        </div>`;
+                }).join('');
             }
 
-            // Average all categories for overall balance score
-            const balanceScore = Math.round(totalScore / categoryCount);
-
-            return {
-                score: balanceScore,
-                percentages: percentages,
-                hours: categoryHours
-            };
-        }
-
-        // Update UI with calculated balance
-        
-        function updateBalanceDisplay() {
+            // Right panel "Life Balance"
             const balanceContent = document.getElementById('balanceContent');
             if (!balanceContent) return;
-            
-            // Calculate current week stats
-            const categoryHours = {
-                fitness: 0,
-                work: 0,
-                family: 0,
-                personal: 0
-            };
-            
-            scheduledEvents.forEach(event => {
-                const duration = (event.duration || 60) / 60;
-                categoryHours[event.category] = (categoryHours[event.category] || 0) + duration;
-            });
-            
-            const totalHours = Object.values(categoryHours).reduce((a, b) => a + b, 0);
-            
-            // Calculate balance score (0-100)
-            const idealDistribution = { fitness: 0.20, work: 0.40, family: 0.25, personal: 0.15 };
-            let balanceScore = 100;
-            
-            Object.keys(idealDistribution).forEach(cat => {
-                const actual = totalHours > 0 ? categoryHours[cat] / totalHours : 0;
-                const ideal = idealDistribution[cat];
-                const deviation = Math.abs(actual - ideal);
-                balanceScore -= deviation * 100;
-            });
-            
-            balanceScore = Math.max(0, Math.round(balanceScore));
-            
-            // Determine rating
-            let rating, description;
-            if (balanceScore >= 90) {
-                rating = "Excellent";
-                description = "Your schedule is well-balanced";
-            } else if (balanceScore >= 75) {
-                rating = "Good";
-                description = "Minor adjustments could improve balance";
-            } else if (balanceScore >= 60) {
-                rating = "Fair";
-                description = "Consider redistributing your time";
-            } else {
-                rating = "Needs Work";
-                description = "Significant imbalance detected";
-            }
-            
-            // Calculate last week (mock for now - would need historical data)
-            const lastWeekHours = {
-                fitness: categoryHours.fitness * 0.9,
-                work: categoryHours.work * 1.1,
-                family: categoryHours.family * 0.95,
-                personal: categoryHours.personal * 1.05
-            };
-            
+            const [rating, description] = balanceRating(b.score);
+            const totalHours = BALANCE_CATEGORIES.reduce((sum, cat) => sum + b.hours[cat], 0);
+            const lastTotal = BALANCE_CATEGORIES.reduce((sum, cat) => sum + last.hours[cat], 0);
+            const totalChange = totalHours - lastTotal;
+
+            // Busiest day of the viewed week
+            const dayCounts = [0, 0, 0, 0, 0, 0, 0];
+            b.events.forEach(e => { if (e.day >= 1 && e.day <= 7) dayCounts[e.day - 1]++; });
+            const busiest = dayCounts.indexOf(Math.max(...dayCounts)) + 1;
+
             let html = `
                 <div class="balance-score">
-                    <div class="score-value">${balanceScore}</div>
+                    <div class="score-value">${b.score}</div>
                     <div class="score-label">${rating} Balance</div>
                     <div class="score-description">${description}</div>
                 </div>
-                
+
                 <div class="time-distribution">
-                    <div class="analytics-title">This Week's Distribution</div>
+                    <div class="analytics-title">This Week vs Targets</div>
                     <div class="distribution-bar">
             `;
-            
-            const colors = {
-                fitness: 'var(--accent-fitness)',
-                work: 'var(--accent-work)',
-                family: 'var(--accent-family)',
-                personal: 'var(--accent-personal)'
-            };
-            
-            Object.keys(categoryHours).forEach(cat => {
-                const percentage = totalHours > 0 ? (categoryHours[cat] / totalHours) * 100 : 0;
-                if (percentage > 0) {
+            BALANCE_CATEGORIES.forEach(cat => {
+                const share = totalHours > 0 ? (b.hours[cat] / totalHours) * 100 : 0;
+                if (share > 0) {
                     html += `
-                        <div class="distribution-segment" 
-                             style="width: ${percentage}%; background: ${colors[cat]};"
-                             title="${cat}: ${categoryHours[cat].toFixed(1)}h">
-                            ${percentage > 10 ? categoryHours[cat].toFixed(0) + 'h' : ''}
+                        <div class="distribution-segment"
+                             style="width: ${share}%; background: ${colors[cat]};"
+                             title="${cat}: ${formatHours(b.hours[cat])}">
+                            ${share > 10 ? Math.round(b.hours[cat]) + 'h' : ''}
                         </div>
                     `;
                 }
             });
-            
             html += `
                     </div>
                     <div class="distribution-legend">
             `;
-            
-            Object.keys(categoryHours).forEach(cat => {
-                const change = categoryHours[cat] - lastWeekHours[cat];
-                const changePercent = lastWeekHours[cat] > 0 ? ((change / lastWeekHours[cat]) * 100).toFixed(0) : 0;
-                
+            BALANCE_CATEGORIES.forEach(cat => {
                 html += `
                     <div class="legend-item">
                         <div class="legend-color" style="background: ${colors[cat]};"></div>
                         <span style="text-transform: capitalize;">${cat}</span>
-                        <span class="legend-value">${categoryHours[cat].toFixed(1)}h</span>
+                        <span class="legend-value">${formatHours(b.hours[cat])} / ${WEEKLY_TARGETS[cat]}h</span>
                     </div>
                 `;
             });
-            
             html += `
                     </div>
                 </div>
-                
+
                 <div class="balance-analytics">
                     <div class="analytics-card">
                         <div class="analytics-title">Total Scheduled</div>
-                        <div class="analytics-value">${totalHours.toFixed(1)}h</div>
-                        <div class="analytics-change positive">+${(totalHours * 0.1).toFixed(1)}h from last week</div>
+                        <div class="analytics-value">${formatHours(totalHours)}</div>
+                        <div class="analytics-change ${totalChange >= 0 ? 'positive' : 'negative'}">${totalChange === 0 ? 'Same as' : (totalChange > 0 ? '+' : '') + formatHours(totalChange)} ${totalChange === 0 ? '' : 'vs '}last week</div>
                     </div>
                     <div class="analytics-card">
                         <div class="analytics-title">Events This Week</div>
-                        <div class="analytics-value">${scheduledEvents.length}</div>
-                        <div class="analytics-change ${scheduledEvents.length > 20 ? 'negative' : 'positive'}">
-                            ${scheduledEvents.length > 20 ? 'High activity' : 'Manageable load'}
+                        <div class="analytics-value">${b.events.length}</div>
+                        <div class="analytics-change ${b.events.length > 20 ? 'negative' : 'positive'}">
+                            ${b.events.length > 20 ? 'High activity' : 'Manageable load'}
                         </div>
                     </div>
                     <div class="analytics-card">
-                        <div class="analytics-title">Most Active Day</div>
-                        <div class="analytics-value">${getMostActiveDay()}</div>
-                        <div class="analytics-change">${getEventsOnDay(getMostActiveDayNum())} events</div>
+                        <div class="analytics-title">Busiest Day</div>
+                        <div class="analytics-value">${b.events.length ? getDayName(busiest) : '—'}</div>
+                        <div class="analytics-change">${b.events.length ? dayCounts[busiest - 1] + ' events' : 'Nothing scheduled'}</div>
                     </div>
                     <div class="analytics-card">
                         <div class="analytics-title">Free Time</div>
-                        <div class="analytics-value">${(168 - totalHours).toFixed(0)}h</div>
-                        <div class="analytics-change">${((168 - totalHours) / 168 * 100).toFixed(0)}% of week</div>
+                        <div class="analytics-value">${Math.round(168 - totalHours)}h</div>
+                        <div class="analytics-change">${Math.round((168 - totalHours) / 168 * 100)}% of week</div>
                     </div>
                 </div>
-                
+
                 <div class="weekly-comparison">
                     <div class="analytics-title">Week Comparison</div>
                     <div class="comparison-grid">
@@ -8968,58 +9067,30 @@ function parseQuickAddSimple() {
                         <div class="comparison-label" style="text-align: center; font-size: 0.75rem;">This Week</div>
                         <div class="comparison-label" style="text-align: center; font-size: 0.75rem;">Last Week</div>
             `;
-            
-            Object.keys(categoryHours).forEach(cat => {
-                const thisWeek = categoryHours[cat];
-                const lastWeek = lastWeekHours[cat];
+            BALANCE_CATEGORIES.forEach(cat => {
+                const thisWeek = b.hours[cat];
+                const lastWeek = last.hours[cat];
                 const maxValue = Math.max(thisWeek, lastWeek, 1);
-                
                 html += `
                     <div class="comparison-label" style="text-transform: capitalize;">${cat}</div>
                     <div class="comparison-bar-container">
                         <div class="comparison-bar" style="width: ${(thisWeek / maxValue) * 100}%; background: ${colors[cat]};">
-                            ${thisWeek.toFixed(1)}h
+                            ${formatHours(thisWeek)}
                         </div>
                     </div>
                     <div class="comparison-bar-container">
                         <div class="comparison-bar" style="width: ${(lastWeek / maxValue) * 100}%; background: ${colors[cat]}; opacity: 0.5;">
-                            ${lastWeek.toFixed(1)}h
+                            ${formatHours(lastWeek)}
                         </div>
                     </div>
                 `;
             });
-            
             html += `
                     </div>
                 </div>
             `;
-            
+
             balanceContent.innerHTML = html;
-        }
-        
-        function getMostActiveDay() {
-            const dayCounts = [0,0,0,0,0,0,0];
-            scheduledEvents.forEach(e => {
-                if (e.day >= 1 && e.day <= 7) {
-                    dayCounts[e.day - 1]++;
-                }
-            });
-            const maxDay = dayCounts.indexOf(Math.max(...dayCounts)) + 1;
-            return getDayName(maxDay);
-        }
-        
-        function getMostActiveDayNum() {
-            const dayCounts = [0,0,0,0,0,0,0];
-            scheduledEvents.forEach(e => {
-                if (e.day >= 1 && e.day <= 7) {
-                    dayCounts[e.day - 1]++;
-                }
-            });
-            return dayCounts.indexOf(Math.max(...dayCounts)) + 1;
-        }
-        
-        function getEventsOnDay(day) {
-            return scheduledEvents.filter(e => e.day === day).length;
         }
 
 
@@ -9225,6 +9296,7 @@ function parseQuickAddSimple() {
             // Re-attach event handlers after rendering
             attachEventHandlers();
             renderUpcoming();
+            updateBalanceDisplay(); // balance follows the week being viewed
         }
 
         function attachEventHandlers() {
@@ -9268,6 +9340,7 @@ function parseQuickAddSimple() {
             document.querySelector('.main-calendar').innerHTML = getMonthViewHTML();
             attachEventHandlers();
             renderUpcoming();
+            updateBalanceDisplay();
         }
 
         function renderDayView() {
@@ -9278,6 +9351,7 @@ function parseQuickAddSimple() {
             document.querySelector('.main-calendar').innerHTML = getDayViewHTML();
             attachEventHandlers();
             renderUpcoming();
+            updateBalanceDisplay();
         }
 
         function renderGoalsView() {
@@ -9368,6 +9442,22 @@ function parseQuickAddSimple() {
         }
 
         // HTML generation for different views
+        function hourLabel(h) {
+            return (h % 12 === 0 ? 12 : h % 12) + (h < 12 ? ' AM' : ' PM');
+        }
+
+        // First hour row for a set of days: 6 AM, or earlier (multiples of 3) if any event starts before that
+        function firstGridHour(days) {
+            let first = 6;
+            days.forEach(day => {
+                scheduledEvents.forEach(event => {
+                    const h = parseInt(event.time.split(':')[0]);
+                    if (h < first && occursOn(event, day)) first = Math.floor(h / 3) * 3;
+                });
+            });
+            return first;
+        }
+
         function getWeekViewHTML() {
             const weekStart = getWeekStart(currentDate);
             const days = [];
@@ -9377,10 +9467,10 @@ function parseQuickAddSimple() {
                 days.push(day);
             }
 
-            const timeSlots = ['6 AM', '9 AM', '12 PM', '3 PM', '6 PM'];
-            const timeSlotHours = [6, 9, 12, 15, 18];
-
-            console.log('Rendering week view with', scheduledEvents.length, 'total events');
+            // 3-hour rows from 6 AM, starting earlier (3 AM / 12 AM) when something that week begins before 6
+            const timeSlotHours = [];
+            for (let h = firstGridHour(days); h < 24; h += 3) timeSlotHours.push(h);
+            const timeSlots = timeSlotHours.map(hourLabel);
 
             return `
                 <div class="calendar-header">
@@ -9439,12 +9529,8 @@ function parseQuickAddSimple() {
                                 const dayOfWeek = (dayIdx + 1) % 7 || 7; // 1=Mon, 7=Sun
                                 const dayEvents = scheduledEvents.filter(event => {
                                     const eventHour = parseInt(event.time.split(':')[0]);
-                                    const matches = occursOn(event, day) && eventHour >= hour && eventHour < (timeSlotHours[timeIdx + 1] || 24);
-                                    if (matches) {
-                                        console.log(`Found event "${event.title}" for day ${dayOfWeek} at hour ${eventHour}`);
-                                    }
-                                    return matches;
-                                });
+                                    return occursOn(event, day) && eventHour >= hour && eventHour < (timeSlotHours[timeIdx + 1] || 24);
+                                }).sort((a, b) => a.time.localeCompare(b.time));
 
                                 let eventsHTML = '';
                                 dayEvents.forEach(event => {
@@ -9588,6 +9674,7 @@ function parseQuickAddSimple() {
                 document.getElementById('eventRepeatMode').value = event.date ? 'once' : 'weekly';
                 document.getElementById('eventDate').value = event.date || toDateKey(new Date());
                 document.getElementById('eventDay').value = event.day;
+                document.getElementById('eventApplyOthers').checked = false;
                 updateRepeatFields();
                 document.getElementById('eventTime').value = event.time;
                 document.getElementById('eventDuration').value = event.duration;
@@ -9683,12 +9770,12 @@ function parseQuickAddSimple() {
             `;
 
             // Day headers
-            ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(day => {
+            ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(day => { // Monday first, like the week view
                 html += `<div style="background: var(--bg-secondary); padding: 1rem; text-align: center; font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace;">${day}</div>`;
             });
 
             // Empty cells before first day
-            for (let i = 0; i < firstDay; i++) {
+            for (let i = 0; i < (firstDay + 6) % 7; i++) {
                 html += `<div style="background: var(--bg-secondary); min-height: 100px; opacity: 0.5;"></div>`;
             }
 
@@ -9778,13 +9865,15 @@ function parseQuickAddSimple() {
         function getDayViewHTML() {
             const dayString = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
             const currentDayOfWeek = currentDate.getDay() === 0 ? 7 : currentDate.getDay(); // 1=Mon, 7=Sun
+            // Get events for this specific day (sorted by time)
+            const dayEvents = scheduledEvents.filter(e => occursOn(e, currentDate)).sort((a, b) => a.time.localeCompare(b.time));
+
+            // 6 AM to 10 PM, widened when the day has events outside that
+            const eventHours = dayEvents.map(e => parseInt(e.time.split(':')[0]));
             const hours = [];
-            for (let i = 6; i <= 22; i++) {
+            for (let i = Math.min(6, ...eventHours); i <= Math.max(22, ...eventHours); i++) {
                 hours.push(i);
             }
-
-            // Get events for this specific day
-            const dayEvents = scheduledEvents.filter(e => occursOn(e, currentDate));
 
             return `
                 <div class="calendar-header">
@@ -9853,7 +9942,63 @@ function parseQuickAddSimple() {
             `;
         }
 
+        // Goals: everything comes from calculateBalance() for the week being viewed (was hardcoded demo content)
         function getGoalsViewHTML() {
+            const weekStart = getWeekStart(currentDate);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const b = calculateBalance(weekStart);
+            const [rating, description] = balanceRating(b.score);
+            const from = toDateKey(weekStart), to = toDateKey(weekEnd);
+            const workoutsLogged = workoutLogs.filter(w => w.date >= from && w.date <= to).length;
+            const names = { fitness: 'Fitness', work: 'Work', family: 'Family', personal: 'Personal' };
+
+            const status = cat => {
+                const h = b.hours[cat], t = WEEKLY_TARGETS[cat];
+                if (h > t * 1.1) return `${formatHours(h - t)} over target`;
+                if (h >= t * 0.9) return 'On target ✓';
+                return `${formatHours(t - h)} to go`;
+            };
+
+            const card = cat => {
+                const count = b.events.filter(e => e.category === cat).length;
+                const extra = cat === 'fitness' ? `
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Workouts logged</span>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${workoutsLogged}</span>
+                            </div>
+                        </div>` : '';
+                return `
+                    <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                            <div style="width: 12px; height: 12px; background: var(--accent-${cat}); border-radius: 50%;"></div>
+                            <h3 style="font-size: 1.25rem; font-weight: 500;">${names[cat]}</h3>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Hours this week</span>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${formatHours(b.hours[cat])} / ${WEEKLY_TARGETS[cat]}h</span>
+                            </div>
+                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
+                                <div style="width: ${b.percentages[cat]}%; height: 100%; background: var(--accent-${cat});"></div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 1.5rem;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Events scheduled</span>
+                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${count}</span>
+                            </div>
+                        </div>${extra}
+                        <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-${cat});">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Weekly target: ${WEEKLY_TARGETS[cat]}h</div>
+                            <div style="font-size: 1.5rem; font-weight: 300; margin-top: 0.5rem;">${status(cat)}</div>
+                        </div>
+                    </div>`;
+            };
+
+            const insights = BALANCE_CATEGORIES.map(cat => `→ ${names[cat]}: ${status(cat)}`).join('<br>');
+
             return `
                 <div class="calendar-header">
                     <div class="calendar-title">Goals & Progress</div>
@@ -9861,111 +10006,22 @@ function parseQuickAddSimple() {
                         <button class="control-btn" onclick="switchView('week')" title="Back to calendar">←</button>
                     </div>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
-                    <!-- Fitness Goals -->
-                    <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-                            <div style="width: 12px; height: 12px; background: var(--accent-fitness); border-radius: 50%;"></div>
-                            <h3 style="font-size: 1.25rem; font-weight: 500;">Fitness Goals</h3>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Workout Streak</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">12 days 🔥</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 80%; height: 100%; background: var(--accent-fitness);"></div>
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Weekly Workouts</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">6/6 ✓</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 100%; height: 100%; background: var(--accent-fitness);"></div>
-                            </div>
-                        </div>
-                        <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-fitness);">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Target: Run 5K under 25 minutes</div>
-                            <div style="font-size: 1.5rem; font-weight: 300; margin-top: 0.5rem;">Current: 26:34</div>
-                        </div>
-                    </div>
-
-                    <!-- Work Goals -->
-                    <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-                            <div style="width: 12px; height: 12px; background: var(--accent-work); border-radius: 50%;"></div>
-                            <h3 style="font-size: 1.25rem; font-weight: 500;">Work Goals</h3>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Deep Work Hours</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">32/40 hrs</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 80%; height: 100%; background: var(--accent-work);"></div>
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Project Milestones</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">3/5 ✓</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 60%; height: 100%; background: var(--accent-work);"></div>
-                            </div>
-                        </div>
-                        <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-work);">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Focus: No meetings before 10 AM</div>
-                            <div style="font-size: 1.5rem; font-weight: 300; margin-top: 0.5rem;">100% this week</div>
-                        </div>
-                    </div>
-
-                    <!-- Family Goals -->
-                    <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
-                            <div style="width: 12px; height: 12px; background: var(--accent-family); border-radius: 50%;"></div>
-                            <h3 style="font-size: 1.25rem; font-weight: 500;">Family Goals</h3>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Quality Time</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">18/20 hrs</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 90%; height: 100%; background: var(--accent-family);"></div>
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 1.5rem;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                                <span style="font-size: 0.9rem; color: var(--text-secondary);">Date Night Streak</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">4 weeks 💕</span>
-                            </div>
-                            <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
-                                <div style="width: 100%; height: 100%; background: var(--accent-family);"></div>
-                            </div>
-                        </div>
-                        <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-family);">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Focus: Weekly family game night</div>
-                            <div style="font-size: 1.5rem; font-weight: 300; margin-top: 0.5rem;">Every Wednesday ✓</div>
-                        </div>
-                    </div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">Week of ${formatDate(weekStart)}</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                    ${BALANCE_CATEGORIES.map(card).join('')}
 
                     <!-- Balance Score Card -->
                     <div style="background: var(--bg-secondary); padding: 2rem; border-radius: 12px; border: 1px solid var(--border); grid-column: span 1;">
                         <h3 style="font-size: 1.25rem; font-weight: 500; margin-bottom: 1.5rem;">Overall Balance</h3>
                         <div style="text-align: center; margin: 2rem 0;">
-                            <div style="font-size: 4rem; font-weight: 300; background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-fitness) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">87</div>
-                            <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em;">Balance Score</div>
+                            <div class="goals-balance-score" style="font-size: 4rem; font-weight: 300; background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-fitness) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">${b.score}</div>
+                            <div style="font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.1em;">${rating} Balance</div>
+                            <div style="font-size: 0.85rem; color: var(--text-tertiary); margin-top: 0.5rem;">${description}</div>
                         </div>
                         <div style="margin-top: 2rem;">
-                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">Weekly Insights:</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">This week:</div>
                             <div style="font-size: 0.9rem; line-height: 1.8; color: var(--text-primary);">
-                                → Fitness consistency excellent<br>
-                                → Work-life ratio on target<br>
-                                → Family time trending up<br>
-                                → Consider adding rest day
+                                ${insights}
                             </div>
                         </div>
                     </div>
@@ -10052,16 +10108,21 @@ function parseQuickAddSimple() {
                 // Update existing event (Every day on an existing event just makes it weekly on its day)
                 const event = scheduledEvents.find(e => e.id === window.editingEventId);
                 if (event) {
+                    // Sibling days (found before the edit, while they still match) get the same changes, but keep their own day
+                    const others = document.getElementById('eventApplyOthers').checked && repeatMode === 'weekly'
+                        ? seriesSiblings(event.id) : [];
                     delete event.date;
                     Object.assign(event, fields);
+                    others.forEach(o => Object.assign(o, { ...fields, day: o.day }));
                 }
                 showToast('Event Updated', `"${title}" has been updated`, 'success');
                 window.editingEventId = null;
             } else {
                 const nextId = () => scheduledEvents.length > 0 ? Math.max(...scheduledEvents.map(e => e.id)) + 1 : 1;
-                const days = repeatMode === 'daily' ? [1, 2, 3, 4, 5, 6, 7] : [day];
+                const days = repeatMode === 'daily' ? [1, 2, 3, 4, 5, 6, 7] : repeatMode === 'weekdays' ? [1, 2, 3, 4, 5] : [day];
                 days.forEach(d => scheduledEvents.push({ id: nextId(), ...fields, day: d }));
                 const when = repeatMode === 'daily' ? 'every day'
+                    : repeatMode === 'weekdays' ? 'every weekday'
                     : date ? new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
                     : `every ${getDayName(day)}`;
                 showToast('Event Created', `"${title}" added ${date ? 'on ' : ''}${when}`, 'success');

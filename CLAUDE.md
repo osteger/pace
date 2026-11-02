@@ -24,6 +24,8 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 - Habits: `dailyHabits` is the only habit list (`{ id, name, category, completedDates: [toDateString…] }`); streaks are computed from `completedDates`. The old unsaved `habits` array is gone; `openHabitModal`/`toggleHabit` are aliases for old buttons.
 - Saving: `saveToLocalStorage()` is a no-op until `loadFromLocalStorage()` has run (`dataLoaded`), so an early save can't wipe stored data. A debounced autosave also runs after any click/change/keyup and on tab hide, as a safety net, because many code paths (bulk edit, undo, templates) mutate data without saving. Still call `saveToLocalStorage()` explicitly in new code.
 - Sharing/partner UI is hidden by one CSS rule at the end of the first `<style>` block (no backend yet). Delete that rule to bring it back.
+- Balance: `calculateBalance(weekStart)` is the ONLY score/hours calculation (targets in `WEEKLY_TARGETS`: fitness 12, work 40, family 15, personal 10). Per category: at target = 100, under = share reached, over loses points (2x target = 0); score = average. `updateBalanceDisplay()` fills every widget from it (sidebar + mobile-menu copies by class, right panel, "This Week" cards, 8-week trend), and `getGoalsViewHTML()` uses it too. It follows the week being viewed. Never put numbers in the HTML: the sidebar, right panel and Goals view were all hardcoded demo values (87, 12h/48h/18h/8h, "6/6 workouts", "Run 5K 26:34") until Nov 2026.
+- Two widgets once shared the class `.balance-score` and broke each other's styling; the CSS is now scoped to `.balance-indicator .balance-score` (sidebar) and `#balanceContent .balance-score` (right panel).
 - Startup runs in a `window.addEventListener('load', ...)` handler that calls `loadFromLocalStorage()`, `renderHabits()`, `renderWeekView()`, etc.
 - The Quick Add input (`#quickAddInput`) is created by `getWeekViewHTML()`, so it only exists once the week view has rendered.
 - Data persists in localStorage keys `paceEvents`, `paceWorkouts`, `paceHabits`, `pacePartners`, `pace_auto_backup`.
@@ -35,13 +37,21 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 - Event form: one Repeat select (`eventRepeatMode`: once / weekly / daily). "Daily" creates 7 weekly events. Quick Add: "tomorrow"/"today"/bare weekday → one-off; "every monday"/"mondays"/"weekly" → weekly.
 - Date-dependent bugs hide on the day you test. When touching anything date-related, also test with a faked date (e.g. a Wednesday).
 
+- "Dad of 3" fixes (rebuilt Nov 2026 from a cloud-chat review; its commit never reached GitHub):
+  - Week view rows are 3-hour blocks from 6 AM and start earlier (3 AM, 12 AM) when an event that week begins before 6; day view widens the same way. Events in a row sort by time. Grid rows grow with their events; on phones the grid scrolls sideways.
+  - Habits render into BOTH `#habitsList` (desktop sidebar) and `#habitTrackerContent` (the ✓ panel, the only one on phones). So never address habit elements by id; `toggleHabitCategory(this)` uses the clicked header.
+  - Repeat select has once / weekly / weekdays (Mon–Fri) / daily; durations go to 12h; default duration 1h. Editing one day of a series offers "Also change the other N days" (`seriesSiblings()`: same title, time, length, category, no date).
+  - Quick Add (`parseQuickAddSimple`) handles "every weekday/day/morning/evening" itself (no AI), time ranges ("8am to 5pm", "6-7:30pm"), typed dates ("Nov 12", "11/12"), and checks family words before fitness/work ("kids swim lessons", "call mom").
+  - `generateSmartNotifications()` is now an every-minute reminder: bell + toast (+ system notification if allowed) once per event per day, within 30 min of start. Only runs while Pace is open.
+  - Toasts: max 3 on screen, unique ids. `updateNotificationCount` is null-safe because the bell only exists in week view.
+
 ## Current state (Nov 2026)
 Usable day to day. Verified in headless Chrome at desktop and phone width, including after reloads:
 - Events: add/edit/delete through the form and Quick Add, notes, one-off vs weekly vs daily, week/month/day views.
 - Habits: add, tick off, streaks, the "habits left today" badge.
 - Backup export + restore. Real "Upcoming" panel. Works offline via the service worker.
 - Phone editing (view-only mode removed), no reload on resize.
-- No fake demo data (partners, notifications, insights, habits, workouts were all hardcoded before), no duplicate IDs.
+- No fake demo data (partners, notifications, insights, habits, workouts, balance numbers and Goals were all hardcoded before), no duplicate IDs. The audit has a balance test that builds a known week and checks every widget shows the same score.
 
 Not verified: real-key AI calls, the deployed site, iOS Safari specifically.
 
@@ -51,7 +61,8 @@ Not verified: real-key AI calls, the deployed site, iOS Safari specifically.
 2. Data lives only in this browser's localStorage: no sync between devices, and Safari can clear site data for sites not added to the Home Screen after a stretch without visits. Export a backup regularly; accounts (item 4) are the real fix.
 3. Several features use `alert()`/`confirm()`; move to toasts/modals.
 4. Planned: user accounts + partner/family sharing (Firebase or Supabase). Sharing UI is already built but hidden (see layout notes).
-5. `generateSmartNotifications()` (upcoming-workout reminders) exists but is never called.
+5. Reminders only fire while Pace is open in a tab; with the app closed they'd need a backend (push).
+8. UX wishlist from a hands-on review (Nov 2026): Quick Add into another week gives no visible feedback (toast should name the date and offer "Show"); "Mark as Completed" on a repeating event marks every week (store completion per date); habits are buried at the bottom of the right panel; AI errors show raw "Failed to fetch"; event menu doesn't say whether it repeats; no today highlight in week view; week-view blocks don't scale with event length.
 6. Editing one day of an "every day" event only edits that day (they're 7 separate weekly events).
 7. The file is too large to maintain safely as one blob; consider splitting into `styles.css` / `app.js` modules.
 
