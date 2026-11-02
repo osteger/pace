@@ -323,6 +323,95 @@ export const steps = [
     scheduledEvents = saved; saveToLocalStorage(); renderCurrentView();
     return 'ok';
   })()`, 300],
+  // Rewards: scheduling nudge, per-date completion, garden, week in review, balanced weeks, records, share card
+  ['rewards: nudge, per-date completion, garden growth', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('rewards: ' + msg); };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)), savedDone = { ...eventDone }, savedHabits = JSON.parse(JSON.stringify(dailyHabits));
+    scheduledEvents = []; eventDone = {}; dailyHabits = [];
+    currentDate = new Date(); switchView('week');
+    document.getElementById('quickAddInput').value = 'workout tomorrow 6am'; parseQuickAdd();
+    await sleep(1000);
+    const texts = [...document.querySelectorAll('#toastContainer .toast')].map(t => t.textContent);
+    need(REWARD_LINES.schedule.fitness.some(l => texts.some(t => t.includes(l))), 'no scheduling nudge in: ' + JSON.stringify(texts));
+
+    scheduledEvents = [{ id: 1, title: 'Gym', category: 'fitness', day: 1, time: '18:00', duration: 60 }];
+    const mon = getWeekStart(new Date()), nextMon = new Date(mon); nextMon.setDate(nextMon.getDate() + 7);
+    window.actionDate = toDateKey(mon);
+    markAsComplete(1);
+    need(isDone(scheduledEvents[0], toDateKey(mon)) && !isDone(scheduledEvents[0], toDateKey(nextMon)), 'completion is not per date');
+    let g = gardenState().find(p => p.cat === 'fitness');
+    need(g.care === 1 && g.stage === 1, 'first completion should sprout the fitness plant: ' + JSON.stringify(g));
+    await sleep(900);
+    need([...document.querySelectorAll('#toastContainer .toast')].some(t => /plant grew/.test(t.textContent)), 'no growth message');
+    markAsComplete(1); // second tap undoes it
+    need(!isDone(scheduledEvents[0], toDateKey(mon)) && gardenState().find(p => p.cat === 'fitness').care === 0, 'undo failed');
+    for (let i = 0; i < 6; i++) eventDone['1@2026-0' + (1 + i) + '-10'] = 'fitness';
+    g = gardenState().find(p => p.cat === 'fitness');
+    need(g.stage === 2 && g.thirsty === true, 'old care: stage 2 and thirsty expected: ' + JSON.stringify(g)); // plants get thirsty, never shrink
+    dailyHabits = [{ id: 1, name: 'Read', category: 'personal', completedDates: [new Date().toDateString()] }];
+    need(gardenState().find(p => p.cat === 'personal').care === 1, 'a ticked habit should feed its plant');
+
+    scheduledEvents = saved; eventDone = savedDone; dailyHabits = savedHabits; window.actionDate = null;
+    saveToLocalStorage(); renderCurrentView();
+    return 'ok';
+  })()`, 300],
+  ['rewards: week in review, balanced weeks, records, share card', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('rewards: ' + msg); };
+    const keys = ['paceStart', 'paceWeeks', 'paceReviewSeen'], backup = {}; keys.forEach(k => { backup[k] = localStorage.getItem(k); });
+    const saved = JSON.parse(JSON.stringify(scheduledEvents)), savedDone = { ...eventDone }, nBefore = notifications.length;
+    const thisMon = getWeekStart(new Date());
+    const monday = n => { const d = new Date(thisMon); d.setDate(d.getDate() + 7 * n); return d; };
+    localStorage.setItem('paceStart', JSON.stringify(toDateKey(monday(-2))));
+    localStorage.removeItem('paceWeeks'); localStorage.removeItem('paceReviewSeen');
+    // A week that hits every target exactly: fitness 12h, work 40h, family 15h, personal 10h
+    scheduledEvents = []; let id = 1;
+    for (let d = 1; d <= 6; d++) scheduledEvents.push({ id: id++, title: 'Run', category: 'fitness', day: d, time: '07:00', duration: 120 });
+    for (let d = 1; d <= 5; d++) scheduledEvents.push({ id: id++, title: 'Work', category: 'work', day: d, time: '09:00', duration: 480 });
+    for (let d = 1; d <= 5; d++) scheduledEvents.push({ id: id++, title: 'Family', category: 'family', day: d, time: '18:00', duration: 180 });
+    for (let d = 1; d <= 5; d++) scheduledEvents.push({ id: id++, title: 'Read', category: 'personal', day: d, time: '21:00', duration: 120 });
+    eventDone = {};
+    const lastMon = monday(-1);
+    // last Monday's run (id 1), work (id 7) and family time (id 12) are done
+    [[1, 'fitness'], [7, 'work'], [12, 'family']].forEach(([eid, cat]) => { eventDone[eid + '@' + toDateKey(lastMon)] = cat; });
+    const weeks = snapshotPastWeeks();
+    need(Object.keys(weeks).length === 2, 'expected 2 finished weeks, got ' + Object.keys(weeks).length);
+    const w = weeks[toDateKey(lastMon)];
+    need(w.balanced === true && w.planned === 21 && w.done === 3 && w.rate === 14, 'last week snapshot: ' + JSON.stringify({ b: w.balanced, p: w.planned, d: w.done, r: w.rate }));
+    // changing the schedule afterwards must not rewrite history
+    scheduledEvents = []; need(snapshotPastWeeks()[toDateKey(lastMon)].planned === 21, 'snapshot changed after the schedule did');
+    scheduledEvents = saved;
+
+    const n0 = notifications.length;
+    initRewards(); initRewards();
+    need(notifications.length === n0 + 1, 'last week announcement should happen exactly once, got ' + (notifications.length - n0));
+    openWeekReview(-1);
+    const modal = document.getElementById('reviewModal'), text = modal.textContent;
+    need(modal.classList.contains('active') && /Balanced week/.test(text) && /21/.test(text) && /2 balanced weeks in a row/.test(text), 'review content: ' + text.replace(/\\s+/g, ' ').slice(0, 300));
+    need(!!modal.querySelector('.garden-grid'), 'review has no garden');
+
+    const cv = buildShareCanvas(currentReview);
+    need(cv.width === 1080 && cv.height === 1350 && cv.toDataURL('image/png').length > 8000, 'share canvas');
+    need(!/\\.title\\b/.test(buildShareCanvas.toString()), 'share card must not read event titles');
+    let downloaded = null; const origClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () { downloaded = this.download; };
+    Object.defineProperty(navigator, 'canShare', { value: () => false, configurable: true });
+    try { await shareReview(); } finally { HTMLAnchorElement.prototype.click = origClick; delete navigator.canShare; }
+    need(downloaded === 'pace-week.png', 'share without Web Share should download the image, got ' + downloaded);
+    closeReview();
+
+    // Records are only announced when they beat earlier weeks
+    const wk = (balanced, done, fit) => ({ balanced, done, planned: 10, rate: done * 10, byCat: { fitness: { done: fit } } });
+    const fake = { '2026-01-05': wk(false, 3, 1), '2026-01-12': wk(true, 5, 3), '2026-01-19': wk(true, 9, 4) };
+    const rec = newRecordsFor(fake, '2026-01-19');
+    need(rec.some(t => /2 balanced weeks in a row/.test(t)) && rec.some(t => /4 workouts/.test(t)) && rec.some(t => /9 things done/.test(t)), 'records: ' + JSON.stringify(rec));
+    need(newRecordsFor({ '2026-01-05': wk(true, 9, 4) }, '2026-01-05').length === 0, 'first ever week should not announce records');
+
+    keys.forEach(k => { if (backup[k] === null) localStorage.removeItem(k); else localStorage.setItem(k, backup[k]); });
+    scheduledEvents = saved; eventDone = savedDone; notifications.length = nBefore; saveToLocalStorage(); renderCurrentView();
+    return 'ok';
+  })()`, 300],
+  ['rewards: completion marker saved before reload', `(() => { eventDone['9999@2026-01-01'] = 'work'; saveToLocalStorage(); return 'set'; })()`],
   ['backup restore round trip', `(async () => {
     const backup = { version: '1.0', scheduledEvents: [{ id: 1, title: 'Restored', day: 3, time: '10:00', duration: 30, category: 'work' }], workouts: [{ id: 9, date: '2026-10-30', workoutName: 'Legs', exercises: [] }], dailyHabits: [{ id: 1, name: 'Restored habit', category: 'personal', completedDates: [] }], partners: [] };
     const { importFromJSON } = enhanceExportImport();
@@ -331,7 +420,8 @@ export const steps = [
     return JSON.stringify({ events: scheduledEvents.map(e => e.title), workouts: workoutLogs.length, habits: dailyHabits.map(h => h.name), habitsShown: document.querySelectorAll('#habitsList .habit-item').length, saved: JSON.parse(localStorage.getItem('paceWorkouts')).length });
   })()`, 1000],
   ['reload', null, 0, 'reload'],
-  ['after reload: restored data persisted', `JSON.stringify({ events: scheduledEvents.map(e => e.title), workouts: workoutLogs.length, habits: dailyHabits.map(h => h.name) })`],
+  ['rewards: completion survived the reload', `(() => { if (eventDone['9999@2026-01-01'] !== 'work') throw new Error('rewards: completion not persisted'); delete eventDone['9999@2026-01-01']; saveToLocalStorage(); return 'ok'; })()`],
+  ['after reload: restored data persisted',`JSON.stringify({ events: scheduledEvents.map(e => e.title), workouts: workoutLogs.length, habits: dailyHabits.map(h => h.name) })`],
   // Known week: fitness 6h/12 (50), work 40h/40 (100), family 20h/15 one-offs (33% over -> 67), personal 5h/10 (50) => 67.
   // Next week the family one-offs are gone (0) => 50. Every widget must show the same numbers.
   ['balance: every widget agrees with the real calculation', `(() => {

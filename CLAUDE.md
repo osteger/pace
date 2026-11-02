@@ -37,6 +37,14 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 - Event form: one Repeat select (`eventRepeatMode`: once / weekly / daily). "Daily" creates 7 weekly events. Quick Add: "tomorrow"/"today"/bare weekday → one-off; "every monday"/"mondays"/"weekly" → weekly.
 - Date-dependent bugs hide on the day you test. When touching anything date-related, also test with a faked date (e.g. a Wednesday).
 
+- Rewards (Nov 2026), all in one `// Rewards` block in the main script (before "Mobile menu functions"):
+  - Messages live in `REWARD_LINES` at the top of that block; edit there. Tone rule: warm, never scolding, plants never die.
+  - Completion is per date: `eventDone['<eventId>@<YYYY-MM-DD>'] = category` (localStorage `paceDone`). `markAsComplete(id)` uses `window.actionDate`, set by `handleEventClick` from the clicked column/day (`[data-day]`). The old per-event `streak` counter was removed (it ticked every week at once). Not in the JSON backup yet.
+  - Scheduling nudge: `scheduleNudge(category)` after Quick Add and new events from the form.
+  - Garden: `gardenState()`; care = completed occurrences + habit check-ins per category; stages at `GARDEN_STEPS`; "thirsty" after 7 days without care, never shrinks. Shown on Goals and in the review.
+  - Week in review: `openWeekReview(offset)`; finished weeks are frozen once into `paceWeeks` (`snapshotPastWeeks`, from `paceStart` on) so records/streaks don't change when the schedule does. `initRewards()` announces last week once (`paceReviewSeen`).
+  - Balanced week = every category within 70–130% of its target (your own targets) and something planned. Records (`newRecordsFor`) only count against earlier weeks; the first week never announces one.
+  - Share card (`buildShareCanvas`, `shareReview`): scores and counts only, never event titles (a test checks the function doesn't read `.title`). Uses Web Share with a file where available, else downloads `pace-week.png`.
 - "First job at 25" fixes (Nov 2026):
   - Quick Add is `parseQuickAddText(input, now)`, a pure function (no DOM; call it from the console to test). It cuts each recognised phrase out of the text and what's left is the title. Handles day lists/ranges ("mon wed fri", "mon-fri"), "tonight/tmrw/noon/after work", "next/this <day>", "in 2 hours", "Nov 12"/"11/12", "on the 1st", "monthly", "every other tuesday", ranges and durations. After adding, a toast says what it understood (`describeQuickAdd`) with Undo; a one-off landing in another week jumps the view there. Add new phrasing to the `first job: Quick Add understands real phrasing` audit step.
   - Event kinds in `occursOn`: `date` (one-off), `monthDay` (monthly), `repeatEvery: 2` + `anchor` (every other week), else weekly on `day`. `eventsInWeek` is "any day of the week matches occursOn".

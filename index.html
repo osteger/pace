@@ -4527,7 +4527,7 @@
         /* On narrower desktops the Quick Add box gets its own full-width row instead of being squeezed to nothing */
         @media (min-width: 769px) and (max-width: 1700px) {
             .calendar-header { flex-wrap: wrap; }
-            .calendar-header:not(.agenda-header) > div:nth-child(2) { order: 3; flex: 1 1 100% !important; max-width: none !important; margin: 0 !important; }
+            .calendar-header:has(#quickAddInput):not(.agenda-header) > div:nth-child(2) { order: 3; flex: 1 1 100% !important; max-width: none !important; margin: 0 !important; }
         }
         .day-header.today { background: rgba(45, 212, 191, 0.12); }
         .day-header.today .day-date { color: var(--accent-fitness); font-weight: 600; }
@@ -4554,6 +4554,29 @@
         .agenda-empty { padding: 0.7rem 0.9rem; color: var(--text-tertiary); font-size: 0.85rem; }
         .mobile-quick-add { display: flex; gap: 0.5rem; }
         .mobile-quick-add button { padding: 0 1rem; background: var(--accent-fitness); border: none; border-radius: 8px; color: var(--bg-primary); font-weight: 600; }
+
+        /* Completed occurrences */
+        .event-block.done, .agenda-event.done { opacity: 0.55; }
+        .event-block.done .event-title::before, .agenda-event.done .agenda-title::before { content: '✓ '; font-weight: 700; }
+
+        /* Garden + week in review */
+        .garden-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; }
+        .garden-plant { background: var(--bg-tertiary); border-radius: 10px; padding: 0.9rem 0.75rem; text-align: center; border-bottom: 3px solid var(--accent); }
+        .garden-plant.thirsty { filter: saturate(0.4); }
+        .garden-icon { font-size: 2.6rem; line-height: 1.1; }
+        .garden-name { font-size: 0.85rem; font-weight: 500; margin-top: 0.3rem; }
+        .garden-stage { font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 0.5rem; min-height: 1.9em; }
+        .garden-bar { height: 5px; background: var(--bg-primary); border-radius: 3px; overflow: hidden; }
+        .garden-bar > div { height: 100%; background: var(--accent); }
+        .garden-next { font-size: 0.68rem; color: var(--text-tertiary); margin-top: 0.3rem; }
+        .review-badge { display: inline-block; padding: 0.3rem 0.9rem; border-radius: 999px; background: rgba(45, 212, 191, 0.15); color: var(--accent-fitness); font-size: 0.8rem; font-weight: 600; margin-bottom: 0.6rem; }
+        .review-headline { font-size: 1.1rem; font-weight: 400; line-height: 1.4; }
+        .review-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 1.25rem; }
+        .review-big { font-size: 2rem; font-weight: 300; }
+        .review-big span { font-size: 1rem; color: var(--text-tertiary); }
+        .review-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
+        .review-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.6rem; }
+        .review-record { font-size: 0.9rem; margin-top: 0.6rem; padding: 0.6rem 0.8rem; background: rgba(245, 158, 11, 0.12); border-radius: 8px; }
     </style>
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#0a0a0a">
@@ -5182,6 +5205,9 @@ Note: Service Workers only work over HTTPS or on localhost
                 <button class="quick-add-btn" onclick="openWorkoutHistoryModal()" style="margin-top: 0.5rem; border-color: var(--accent-work);">
                     <span>Workout History</span>
                 </button>
+                <button class="quick-add-btn" onclick="openWeekReview(-1)" style="margin-top: 0.5rem; border-color: var(--accent-family);">
+                    <span>🌱 Week in Review</span>
+                </button>
             </div>
 
             <div class="panel-section">
@@ -5332,6 +5358,7 @@ Note: Service Workers only work over HTTPS or on localhost
         <button class="mobile-quick-btn" onclick="openWorkoutLogModal(); toggleQuickMenu();">Log Workout</button>
         <button class="mobile-quick-btn" onclick="openWorkoutHistoryModal(); toggleQuickMenu();">📈 Workout History</button>
         <button class="mobile-quick-btn" onclick="toggleHabitTracker(); toggleQuickMenu();">✓ Daily Habits</button>
+        <button class="mobile-quick-btn" onclick="openWeekReview(-1); toggleQuickMenu();">🌱 Week in Review</button>
         <button class="mobile-quick-btn" onclick="openModal('family'); toggleQuickMenu();">+ Connection Time</button>
         <button class="mobile-quick-btn" onclick="openWorkoutTemplateModal(); toggleQuickMenu();">⚡ Workout Split</button>
         <div style="height: 1px; background: var(--border); margin: 0.25rem 0;"></div>
@@ -5846,6 +5873,18 @@ Note: Service Workers only work over HTTPS or on localhost
 
     <!-- TOAST NOTIFICATION CONTAINER -->
     <div class="toast-container" id="toastContainer"></div>
+
+    <!-- WEEK IN REVIEW MODAL -->
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal" style="max-width: 560px;">
+            <div class="modal-header" id="reviewTitle">Week in review</div>
+            <div id="reviewContent"></div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeReview()">Close</button>
+                <button class="btn btn-primary" onclick="shareReview()">Share this week</button>
+            </div>
+        </div>
+    </div>
 
     <!-- EVENT ACTION MODAL -->
     <div class="modal-overlay" id="eventActionModal">
@@ -6736,6 +6775,7 @@ function parseQuickAddSimple() {
         const toastId = showToast(p.title + (weekDays.length > 1 ? ` (${weekDays.length} days)` : ''), message, clashes.length ? 'warning' : 'success',
             [{ label: 'Undo', primary: true, onclick: `undoQuickAdd('${stamp}')` }]);
         setTimeout(() => dismissToast(toastId), 9000);
+        scheduleNudge(p.category);
     } catch (error) {
         console.error('Error in parseQuickAddSimple:', error);
         showToast('Error', error.message || 'Failed to add event', 'error');
@@ -7072,6 +7112,7 @@ function parseQuickAddSimple() {
                 closeWorkoutHistoryModal();
                 closeWorkoutDetailModal();
                 if (typeof closeAddHabitModal === 'function') closeAddHabitModal();
+                closeReview();
                 closeEventActionModal();
                 
                 // Close habit tracker panel
@@ -7163,7 +7204,8 @@ function parseQuickAddSimple() {
             
             // Initialize notifications
             initializeNotifications();
-            
+            initRewards();
+
             // Initialize habit category progress
             updateHabitCategoryProgress();
             
@@ -7423,6 +7465,7 @@ function parseQuickAddSimple() {
                 localStorage.setItem('paceWorkouts', JSON.stringify(workoutLogs));
                 localStorage.setItem('paceHabits', JSON.stringify(dailyHabits));
                 localStorage.setItem('pacePartners', JSON.stringify(partners));
+                localStorage.setItem('paceDone', JSON.stringify(eventDone));
                 localStorage.setItem('pace_auto_backup', JSON.stringify({
                     events: scheduledEvents, habits: dailyHabits, workouts: workoutLogs,
                     timestamp: new Date().toISOString()
@@ -7449,6 +7492,7 @@ function parseQuickAddSimple() {
             const hb = read('paceHabits');   if (Array.isArray(hb)) dailyHabits = hb;
             const pt = read('pacePartners'); if (Array.isArray(pt)) partners = pt;
             if (typeof loadTargets === 'function') loadTargets();
+            const dn = read('paceDone'); if (dn && typeof dn === 'object' && !Array.isArray(dn)) eventDone = dn;
             dataLoaded = true;
         }
 
@@ -7793,10 +7837,13 @@ function parseQuickAddSimple() {
             if (!habit) return;
             const today = new Date().toDateString();
             if (!habit.completedDates) habit.completedDates = [];
+            const plantCat = habit.category in GARDEN_CATEGORIES ? habit.category : 'personal';
+            const stageBefore = stageOf(plantCat);
             if (habit.completedDates.includes(today)) {
                 habit.completedDates = habit.completedDates.filter(d => d !== today);
             } else {
                 habit.completedDates.push(today);
+                growthToast(plantCat, stageBefore);
                 const streak = calculateStreak(habit.completedDates);
                 if (streak % 7 === 0) {
                     showToast('Streak!', `${streak} days in a row: "${habit.name}"`, 'success');
@@ -8147,7 +8194,16 @@ function parseQuickAddSimple() {
             
             const event = scheduledEvents.find(ev => ev.id === eventId);
             if (!event) return;
-            
+
+            // Which occurrence was clicked: the column (week grid) or day section (phone) it sits in
+            window.actionDate = null;
+            const col = e.currentTarget && e.currentTarget.closest && e.currentTarget.closest('[data-day]');
+            if (col) {
+                const d = getWeekStart(currentDate);
+                d.setDate(d.getDate() + Number(col.dataset.day) - 1);
+                window.actionDate = toDateKey(d);
+            }
+
             openEventActionModal(event);
         }
 
@@ -8172,6 +8228,8 @@ function parseQuickAddSimple() {
                 return `${displayHours}:${String(minutes).padStart(2, '0')} ${period}`;
             };
             
+            const doneLabel = isDone(event, actionDateKey(event)) ? 'Completed ✓ (tap to undo)' : 'Mark as Completed';
+            const repeatsText = event.date ? 'Once' : event.monthDay ? 'Monthly' : event.repeatEvery > 1 ? 'Every other week' : 'Every week';
             let actionsHTML = `
                 <div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -8180,7 +8238,11 @@ function parseQuickAddSimple() {
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <span style="color: var(--text-tertiary); font-size: 0.85rem;">Day</span>
-                        <span style="font-weight: 500;">${getDayName(event.day)}</span>
+                        <span style="font-weight: 500;">${event.date ? new Date(event.date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) : getDayName(event.day)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span style="color: var(--text-tertiary); font-size: 0.85rem;">Repeats</span>
+                        <span style="font-weight: 500;">${repeatsText}</span>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                         <span style="color: var(--text-tertiary); font-size: 0.85rem;">Time</span>
@@ -8210,7 +8272,7 @@ function parseQuickAddSimple() {
                     </button>
                     <button class="btn" style="width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="markAsComplete(${event.id})">
                         <span>✓</span>
-                        <span>Mark as Completed</span>
+                        <span>${doneLabel}</span>
                     </button>
                 `;
             } else if (event.category === 'family') {
@@ -8221,14 +8283,14 @@ function parseQuickAddSimple() {
                     </button>
                     <button class="btn" style="width: 100%; background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary); display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="markAsComplete(${event.id})">
                         <span>✓</span>
-                        <span>Mark as Completed</span>
+                        <span>${doneLabel}</span>
                     </button>
                 `;
             } else {
                 actionsHTML += `
                     <button class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onclick="markAsComplete(${event.id})">
                         <span>✓</span>
-                        <span>Mark as Completed</span>
+                        <span>${doneLabel}</span>
                     </button>
                 `;
             }
@@ -8271,42 +8333,6 @@ function parseQuickAddSimple() {
             const eventDate = new Date(today);
             eventDate.setDate(today.getDate() + dayDiff);
             document.getElementById('logWorkoutDate').value = eventDate.toISOString().split('T')[0];
-        }
-
-        function markAsComplete(eventId) {
-            const event = scheduledEvents.find(e => e.id === eventId);
-            if (!event) return;
-            
-            // Increment streak
-            if (!event.streak) {
-                event.streak = 1;
-            } else {
-                event.streak++;
-            }
-            
-            closeEventActionModal();
-            
-            // Show celebration for milestones
-            if (event.streak % 7 === 0) {
-                showToast(
-                    '🎉 Milestone Achieved!',
-                    `Amazing! ${event.streak}-day streak on "${event.title}"!`,
-                    'success'
-                );
-            } else {
-                showToast(
-                    'Completed!',
-                    `"${event.title}" • Streak: ${event.streak} 🔥`,
-                    'success'
-                );
-            }
-            
-            // Re-render
-            switch(currentView) {
-                case 'week': renderWeekView(); break;
-                case 'month': renderMonthView(); break;
-                case 'day': renderDayView(); break;
-            }
         }
 
         function shareEventWithPartner(eventId) {
@@ -9689,7 +9715,7 @@ function parseQuickAddSimple() {
                 const events = scheduledEvents.filter(e => occursOn(e, day)).sort((a, b) => a.time.localeCompare(b.time));
                 const isToday = toDateKey(day) === todayKey;
                 const list = events.length ? events.map(e => `
-                    <div class="agenda-event ${e.category}" data-event-id="${e.id}" onclick="editEvent(${e.id})">
+                    <div class="agenda-event ${e.category} ${isDone(e, day) ? 'done' : ''}" data-event-id="${e.id}" onclick="handleEventClick(event, ${e.id})">
                         <div class="agenda-time">${formatTime12Short(e.time)}<br><span>${formatTime12Short(addMinutes(e.time, e.duration))}</span></div>
                         <div class="agenda-title">${e.title}${e.date ? '' : ' <span class="agenda-repeat" title="Repeats weekly">↻</span>'}</div>
                     </div>`).join('') : `<div class="agenda-empty">Nothing planned</div>`;
@@ -9823,7 +9849,7 @@ function parseQuickAddSimple() {
                                     const endTime = formatTime12(addMinutes(event.time, event.duration));
                                     
                                     eventsHTML += `
-                                        <div class="event-block ${event.category}" 
+                                        <div class="event-block ${event.category} ${isDone(event, day) ? 'done' : ''}"
                                              data-event-id="${event.id}"
                                              draggable="true"
                                              ondragstart="handleDragStart(event, ${event.id})"
@@ -10278,6 +10304,7 @@ function parseQuickAddSimple() {
                 </div>
                 <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 1rem;">Week of ${formatDate(weekStart)}</div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+                    ${gardenCardHTML()}
                     ${BALANCE_CATEGORIES.map(card).join('')}
 
                     <!-- Targets -->
@@ -10313,6 +10340,363 @@ function parseQuickAddSimple() {
                 </div>
             `;
         }
+
+        // ===================== Rewards =====================
+        // Warm feedback for planning and following through. Everything here is computed from your real calendar,
+        // completions and habits. Edit the lines below to change what Pace says; keep them short and kind.
+        const REWARD_LINES = {
+            schedule: {
+                fitness: ['Booked. Future you says thanks.', 'A workout on the calendar is half the workout.', 'You just invested in the next version of you.', 'Planned beats "maybe". Nice.'],
+                work: ['One less thing to hold in your head.', 'On the calendar means off your mind.', 'Planned. Now go be great at it.'],
+                family: ['Time that matters, protected.', 'The best plans have people in them.', 'Made room for your people. Good call.', 'Friends and family first. It is on the calendar.'],
+                personal: ['Time for you, on purpose.', 'Looking after yourself counts as productive.', 'You scheduled it, so it is real.']
+            },
+            review: {
+                balanced: ['Balanced week. Every part of your life got its share.', 'That is what balance looks like.'],
+                strong: ['You did what you said you would. That is the whole trick.', 'A week of keeping your word to yourself.'],
+                steady: ['A real week, lived. Keep going.', 'Progress is mostly showing up. You did.'],
+                fresh: ['Fresh start. The calendar is ready when you are.', 'Every week is a clean page.']
+            }
+        };
+
+        const GARDEN_CATEGORIES = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
+        const GARDEN_STEPS = [0, 1, 6, 16, 36, 80];   // care needed for each growth stage
+        const GARDEN_ICONS = {                         // one icon per stage, last one is the bloom
+            fitness: ['🌰', '🌱', '🌿', '🪴', '🌳', '🌲'],
+            work: ['🌰', '🌱', '🌿', '🪴', '🌳', '🌴'],
+            family: ['🌰', '🌱', '🌿', '🪴', '🌷', '🌸'],
+            personal: ['🌰', '🌱', '🌿', '🪴', '🌼', '🌻']
+        };
+        const GARDEN_STAGE_NAMES = ['Seed', 'Sprout', 'Growing', 'Thriving', 'Flourishing', 'In full bloom'];
+
+        let eventDone = {};     // 'eventId@YYYY-MM-DD' -> category: which occurrences you completed
+        let lastNudge = '';
+
+        const pick = list => list[Math.floor(Math.random() * list.length)];
+
+        // ---- 1. Nudge when you schedule something ----
+        function scheduleNudge(category) {
+            const pool = (REWARD_LINES.schedule[category] || REWARD_LINES.schedule.personal).filter(l => l !== lastNudge);
+            lastNudge = pick(pool);
+            const icons = { fitness: '💪', work: '💼', family: '❤️', personal: '🌟' };
+            setTimeout(() => showToast(icons[category] || '✨', lastNudge, 'info'), 700);
+        }
+
+        // ---- Completion, remembered per date (a repeating event is done on a day, not forever) ----
+        function doneKeyFor(event, dateKey) { return event.id + '@' + dateKey; }
+        function isDone(event, date) { return !!eventDone[doneKeyFor(event, typeof date === 'string' ? date : toDateKey(date))]; }
+
+        // The date of the occurrence being acted on: the clicked column, the event's own date, or today
+        function actionDateKey(event) {
+            if (event.date) return event.date;
+            if (window.actionDate) return window.actionDate;
+            return toDateKey(new Date());
+        }
+
+        // ---- 8. The garden: care points per life area ----
+        function careByCategory() {
+            const care = { fitness: 0, work: 0, family: 0, personal: 0 };
+            const last = { fitness: '', work: '', family: '', personal: '' };
+            Object.entries(eventDone).forEach(([key, cat]) => {
+                if (!(cat in care)) return;
+                care[cat]++;
+                const date = key.split('@')[1];
+                if (date > last[cat]) last[cat] = date;
+            });
+            dailyHabits.forEach(h => {
+                const cat = h.category in care ? h.category : 'personal';
+                (h.completedDates || []).forEach(d => {
+                    care[cat]++;
+                    const k = toDateKey(new Date(d));
+                    if (k > last[cat]) last[cat] = k;
+                });
+            });
+            return { care, last };
+        }
+
+        function gardenStage(care) {
+            let stage = 0;
+            GARDEN_STEPS.forEach((need, i) => { if (care >= need) stage = i; });
+            return stage;
+        }
+
+        function gardenState() {
+            const { care, last } = careByCategory();
+            const weekAgo = toDateKey(new Date(Date.now() - 7 * 86400000));
+            return Object.keys(GARDEN_CATEGORIES).map(cat => {
+                const stage = gardenStage(care[cat]);
+                const next = GARDEN_STEPS[stage + 1];
+                return { cat, care: care[cat], stage, next, thirsty: stage > 0 && last[cat] < weekAgo, icon: GARDEN_ICONS[cat][stage] };
+            });
+        }
+
+        function gardenCardHTML() {
+            const tiles = gardenState().map(p => `
+                <div class="garden-plant ${p.thirsty ? 'thirsty' : ''}" style="--accent: var(--accent-${p.cat});" title="${GARDEN_CATEGORIES[p.cat]}: ${p.care} things done">
+                    <div class="garden-icon">${p.icon}</div>
+                    <div class="garden-name">${GARDEN_CATEGORIES[p.cat]}</div>
+                    <div class="garden-stage">${p.thirsty ? 'Thirsty, a little care helps' : GARDEN_STAGE_NAMES[p.stage]}</div>
+                    <div class="garden-bar"><div style="width: ${p.next ? Math.round((p.care - GARDEN_STEPS[p.stage]) / (p.next - GARDEN_STEPS[p.stage]) * 100) : 100}%;"></div></div>
+                    <div class="garden-next">${p.next ? (p.next - p.care) + ' more to grow' : 'Fully grown'}</div>
+                </div>`).join('');
+            return `
+                <div id="gardenCard" style="grid-column: 1 / -1; background: var(--bg-secondary); padding: 1.5rem 2rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+                        <div>
+                            <h3 style="font-size: 1.25rem; font-weight: 500;">Your garden</h3>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">Finish scheduled things and tick habits to grow one plant per part of your life. Plants never die.</div>
+                        </div>
+                        <button class="control-btn" style="font-size: 0.85rem;" onclick="openWeekReview(-1)">Last week in review</button>
+                    </div>
+                    <div class="garden-grid">${tiles}</div>
+                </div>`;
+        }
+
+        // Tell the user when something they just did made a plant grow
+        function growthToast(category, stageBefore) {
+            const now = gardenState().find(p => p.cat === category);
+            if (now && now.stage > stageBefore) {
+                setTimeout(() => showToast(now.icon + ' Your ' + GARDEN_CATEGORIES[category] + ' plant grew', GARDEN_STAGE_NAMES[now.stage] + '.', 'success'), 500);
+            }
+        }
+        function stageOf(category) { return gardenState().find(p => p.cat === category).stage; }
+
+        // ---- Completing an occurrence (called from the event menu) ----
+        function markAsComplete(eventId) {
+            const event = scheduledEvents.find(e => e.id === eventId);
+            if (!event) return;
+            const dateKey = actionDateKey(event);
+            const key = doneKeyFor(event, dateKey);
+            closeEventActionModal();
+            if (eventDone[key]) {
+                delete eventDone[key];
+                showToast('Unmarked', '"' + event.title + '" is back on the list', 'info');
+            } else {
+                const before = stageOf(event.category);
+                eventDone[key] = event.category;
+                showToast('Done ✓', '"' + event.title + '"', 'success');
+                saveToLocalStorage();
+                growthToast(event.category, before);
+            }
+            saveToLocalStorage();
+            renderCurrentView();
+        }
+
+        // ---- 5. Week in review ----
+        function weekDays(ws) {
+            return [0, 1, 2, 3, 4, 5, 6].map(i => { const d = new Date(ws); d.setDate(d.getDate() + i); return d; });
+        }
+
+        // What was planned, done and balanced in a week. `upTo` limits the count to days up to and including it (current week).
+        function reviewFor(ws, upTo) {
+            const days = weekDays(ws).filter(d => !upTo || toDateKey(d) <= toDateKey(upTo));
+            const byCat = {};
+            BALANCE_CATEGORIES.forEach(c => { byCat[c] = { planned: 0, done: 0 }; });
+            let planned = 0, done = 0;
+            days.forEach(day => {
+                const dateKey = toDateKey(day);
+                scheduledEvents.forEach(e => {
+                    if (!occursOn(e, day) || NOT_COUNTED_RE.test(e.title) || !byCat[e.category]) return;
+                    planned++; byCat[e.category].planned++;
+                    if (eventDone[doneKeyFor(e, dateKey)]) { done++; byCat[e.category].done++; }
+                });
+            });
+            const dayKeys = new Set(days.map(toDateKey));
+            let habitDone = 0;
+            dailyHabits.forEach(h => (h.completedDates || []).forEach(d => { if (dayKeys.has(toDateKey(new Date(d)))) habitDone++; }));
+            const b = calculateBalance(ws);
+            const balanced = planned > 0 && BALANCE_CATEGORIES.every(c => b.ofTarget[c] >= 70 && b.ofTarget[c] <= 130);
+            return {
+                week: toDateKey(ws), score: b.score, balanced, planned, done, byCat,
+                rate: planned ? Math.round(done / planned * 100) : 0,
+                hours: b.hours, ofTarget: b.ofTarget, targets: { ...WEEKLY_TARGETS },
+                habitDone, habitPossible: dailyHabits.length * days.length
+            };
+        }
+
+        function readJSON(key, fallback) {
+            try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch (e) { return fallback; }
+        }
+        function writeJSON(key, value) {
+            try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { console.error('Could not save', key, e); }
+        }
+
+        // Freeze each finished week once, so records and streaks reflect what you did then (not today's schedule)
+        function snapshotPastWeeks() {
+            const start = getWeekStart(new Date(readJSON('paceStart', toDateKey(new Date())) + 'T12:00'));
+            const thisWeek = getWeekStart(new Date());
+            const weeks = readJSON('paceWeeks', {});
+            let changed = false;
+            for (let ws = new Date(start); ws < thisWeek; ws.setDate(ws.getDate() + 7)) {
+                const key = toDateKey(ws);
+                if (!weeks[key]) { weeks[key] = reviewFor(new Date(ws)); changed = true; }
+            }
+            if (changed) writeJSON('paceWeeks', weeks);
+            return weeks;
+        }
+
+        // ---- 6 + 7. Balanced weeks and personal records ----
+        function balancedStreak(weeks) {
+            const keys = Object.keys(weeks).sort();
+            let streak = 0;
+            for (let i = keys.length - 1; i >= 0 && weeks[keys[i]].balanced; i--) streak++;
+            return streak;
+        }
+
+        function computeRecords(weeks) {
+            const list = Object.values(weeks);
+            let best = 0, run = 0;
+            Object.keys(weeks).sort().forEach(k => { run = weeks[k].balanced ? run + 1 : 0; best = Math.max(best, run); });
+            return {
+                balancedStreak: best,
+                workoutsDone: Math.max(0, ...list.map(w => w.byCat.fitness.done)),
+                thingsDone: Math.max(0, ...list.map(w => w.done)),
+                bestRate: Math.max(0, ...list.filter(w => w.planned >= 5).map(w => w.rate))
+            };
+        }
+
+        // Records beaten by the most recent finished week (compared with everything before it)
+        function newRecordsFor(weeks, weekKey) {
+            const before = { ...weeks }; delete before[weekKey];
+            const prev = computeRecords(before), now = computeRecords(weeks), out = [];
+            if (Object.keys(before).length === 0) return out; // first ever week: nothing to beat yet
+            if (now.balancedStreak > prev.balancedStreak && now.balancedStreak >= 2) out.push(now.balancedStreak + ' balanced weeks in a row, your longest yet');
+            if (now.workoutsDone > prev.workoutsDone && now.workoutsDone >= 2) out.push(now.workoutsDone + ' workouts done in a week, a new best');
+            if (now.thingsDone > prev.thingsDone && now.thingsDone >= 5) out.push(now.thingsDone + ' things done in a week, a new best');
+            return out;
+        }
+
+        let currentReview = null;
+
+        function openWeekReview(offset = -1) {
+            const thisWeek = getWeekStart(new Date());
+            const ws = new Date(thisWeek); ws.setDate(ws.getDate() + 7 * offset);
+            const weeks = snapshotPastWeeks();
+            const key = toDateKey(ws);
+            const r = offset < 0 && weeks[key] ? weeks[key] : reviewFor(ws, offset === 0 ? new Date() : null);
+            const prevWs = new Date(ws); prevWs.setDate(prevWs.getDate() - 7);
+            const prev = weeks[toDateKey(prevWs)] || null;
+            const streak = offset < 0 ? balancedStreakEndingAt(weeks, key) : (r.balanced ? balancedStreak(weeks) + 1 : 0);
+            const records = offset < 0 ? newRecordsFor(weeks, key) : [];
+            currentReview = { ...r, streak, records, label: offset === 0 ? 'This week so far' : offset === -1 ? 'Last week' : 'Week of ' + formatDate(ws), weekStartDate: ws.toISOString() };
+
+            const kind = r.planned === 0 ? 'fresh' : r.balanced ? 'balanced' : r.rate >= 70 ? 'strong' : 'steady';
+            const headline = pick(REWARD_LINES.review[kind]);
+            const names = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
+            const diff = prev ? r.done - prev.done : null;
+            const rows = BALANCE_CATEGORIES.map(c => `
+                <div style="margin-bottom: 0.9rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.3rem;">
+                        <span>${names[c]}</span>
+                        <span style="color: var(--text-secondary);">${formatHours(r.hours[c])} of ${r.targets[c]}h · ${r.byCat[c].done}/${r.byCat[c].planned} done</span>
+                    </div>
+                    <div style="height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;"><div style="height: 100%; width: ${Math.min(r.ofTarget[c], 100)}%; background: var(--accent-${c});"></div></div>
+                </div>`).join('');
+
+            document.getElementById('reviewTitle').textContent = currentReview.label + ' in review';
+            document.getElementById('reviewContent').innerHTML = `
+                <div style="text-align: center; margin-bottom: 1.25rem;">
+                    ${r.balanced ? '<div class="review-badge">✦ Balanced week</div>' : ''}
+                    <div class="review-headline">${headline}</div>
+                </div>
+                <div class="review-stats">
+                    <div><div class="review-big">${r.done}<span>/${r.planned}</span></div><div class="review-label">planned things done</div></div>
+                    <div><div class="review-big">${r.score}</div><div class="review-label">balance score</div></div>
+                    <div><div class="review-big">${r.habitDone}</div><div class="review-label">habit check-ins</div></div>
+                </div>
+                ${rows}
+                ${diff !== null ? `<div class="review-note">${diff > 0 ? '+' + diff + ' more things done than the week before.' : diff < 0 ? Math.abs(diff) + ' fewer than the week before. That is okay, weeks differ.' : 'The same number done as the week before.'}</div>` : ''}
+                ${streak >= 2 ? `<div class="review-note">✦ ${streak} balanced weeks in a row</div>` : ''}
+                ${records.map(t => `<div class="review-record">🏆 New personal best: ${t}</div>`).join('')}
+                <div style="margin-top: 1.25rem;">${gardenCardHTML().replace('grid-column: 1 / -1;', '').replace(/<button.*?<\/button>/s, '')}</div>
+            `;
+            document.getElementById('reviewModal').classList.add('active');
+        }
+
+        function balancedStreakEndingAt(weeks, key) {
+            let streak = 0;
+            const keys = Object.keys(weeks).sort().filter(k => k <= key);
+            for (let i = keys.length - 1; i >= 0 && weeks[keys[i]].balanced; i--) streak++;
+            return streak;
+        }
+
+        function closeReview() { document.getElementById('reviewModal').classList.remove('active'); }
+
+        // ---- Share card: scores and counts only, never event titles ----
+        function buildShareCanvas(r) {
+            const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+            const c = document.createElement('canvas');
+            c.width = 1080; c.height = 1350;
+            const g = c.getContext('2d');
+            g.fillStyle = '#0a0a0a'; g.fillRect(0, 0, 1080, 1350);
+            const glow = g.createLinearGradient(0, 0, 1080, 1350);
+            glow.addColorStop(0, 'rgba(45, 212, 191, 0.20)'); glow.addColorStop(1, 'rgba(168, 85, 247, 0.14)');
+            g.fillStyle = glow; g.fillRect(0, 0, 1080, 1350);
+            g.textAlign = 'center'; g.fillStyle = '#f5f5f5';
+            g.font = '500 64px Georgia, serif';
+            g.fillText(r.balanced ? '✦ Balanced week' : 'My week on Pace', 540, 170);
+            g.font = '32px sans-serif'; g.fillStyle = '#9ca3af';
+            g.fillText(r.label + ' · ' + formatDate(new Date(r.weekStartDate)), 540, 230);
+            g.font = '300 260px Georgia, serif'; g.fillStyle = '#f5f5f5';
+            g.fillText(String(r.score), 540, 500);
+            g.font = '30px sans-serif'; g.fillStyle = '#9ca3af';
+            g.fillText('BALANCE SCORE', 540, 612);
+            const names = { fitness: 'Fitness', work: 'Work', family: 'Family & Friends', personal: 'Personal' };
+            BALANCE_CATEGORIES.forEach((cat, i) => {
+                const y = 710 + i * 90;
+                g.textAlign = 'left'; g.font = '30px sans-serif'; g.fillStyle = '#f5f5f5';
+                g.fillText(names[cat], 140, y);
+                g.textAlign = 'right'; g.fillStyle = '#9ca3af';
+                g.fillText(Math.round(r.ofTarget[cat]) + '% of target', 940, y);
+                g.fillStyle = '#1f1f1f'; g.fillRect(140, y + 16, 800, 14);
+                g.fillStyle = css('--accent-' + cat) || '#2dd4bf';
+                g.fillRect(140, y + 16, 800 * Math.min(r.ofTarget[cat], 100) / 100, 14);
+            });
+            g.textAlign = 'center'; g.fillStyle = '#f5f5f5'; g.font = '40px sans-serif';
+            g.fillText(r.done + ' of ' + r.planned + ' planned things done', 540, 1100);
+            if (r.streak >= 2) { g.fillStyle = '#2dd4bf'; g.font = '32px sans-serif'; g.fillText('✦ ' + r.streak + ' balanced weeks in a row', 540, 1155); }
+            g.font = '64px sans-serif';
+            g.fillText(gardenState().map(p => p.icon).join('  '), 540, 1245);
+            g.font = '26px sans-serif'; g.fillStyle = '#6b7280';
+            g.fillText('Pace · osteger.github.io/pace', 540, 1310);
+            return c;
+        }
+
+        async function shareReview() {
+            if (!currentReview) return;
+            const canvas = buildShareCanvas(currentReview);
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const file = new File([blob], 'pace-week.png', { type: 'image/png' });
+            const text = currentReview.balanced ? 'A balanced week, planned and done with Pace.' : 'My week on Pace.';
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ files: [file], text }); return; }
+                catch (e) { if (e.name === 'AbortError') return; }
+            }
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = 'pace-week.png';
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            showToast('Image saved', 'Attach pace-week.png to your post. It shows scores and counts only, no event names.', 'success');
+        }
+
+        // ---- Start-up: remember when you began, freeze finished weeks, announce last week's review once ----
+        function initRewards() {
+            if (!readJSON('paceStart', null)) writeJSON('paceStart', toDateKey(new Date()));
+            const weeks = snapshotPastWeeks();
+            const lastWeek = getWeekStart(new Date()); lastWeek.setDate(lastWeek.getDate() - 7);
+            const key = toDateKey(lastWeek);
+            if (weeks[key] && readJSON('paceReviewSeen', '') !== key) {
+                writeJSON('paceReviewSeen', key);
+                const w = weeks[key];
+                const summary = w.planned ? w.done + ' of ' + w.planned + ' done' + (w.balanced ? ' · balanced week ✦' : '') : 'A fresh week is ready';
+                addNotification({ type: 'reminder', icon: '📊', title: 'Last week is ready', message: summary });
+                setTimeout(() => {
+                    const id = showToast('Your week in review', summary, 'info', [{ label: 'See my week', primary: true, onclick: 'openWeekReview(-1)' }]);
+                    setTimeout(() => dismissToast(id), 20000);
+                }, 3500);
+            }
+        }
+
 
         // Mobile menu functions
         function toggleMobileMenu() {
@@ -10416,6 +10800,7 @@ function parseQuickAddSimple() {
                     : date ? new Date(date + 'T12:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
                     : `every ${getDayName(day)}`;
                 showToast('Event Created', `"${title}" added ${date ? 'on ' : ''}${when}`, 'success');
+                scheduleNudge(category);
             }
 
             saveToLocalStorage();
