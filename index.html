@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pace - Life Pace</title>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@300;400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Apply a saved theme before first paint so there is no flash. Without a saved choice the system setting decides (CSS).
+        try { var t = localStorage.getItem('paceTheme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+    </script>
     <style>
         * {
             margin: 0;
@@ -12,23 +18,98 @@
             box-sizing: border-box;
         }
 
+        /* ===== Design tokens. Dark is the default; light follows the system setting or the toggle. =====
+           Every color in the app comes from these, so a theme is just a different set of values. */
         :root {
-            --bg-primary: #0a0a0a;
-            --bg-secondary: #151515;
-            --bg-tertiary: #1a1a1a;
-            --text-primary: #e8e8e8;
-            --text-secondary: #a0a0a0;
-            --text-tertiary: #606060;
+            --font-ui: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            --font-num: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+            --bg-primary: #0e1014;
+            --bg-secondary: #14171d;
+            --bg-tertiary: #1b1f27;
+            --bg-hover: #212632;
+            --text-primary: #e9ebf0;
+            --text-secondary: #a1a8b6;
+            --text-tertiary: #6d7586;
+            --border: #262b36;
+            --border-strong: #343a48;
+            --shadow: rgba(0, 0, 0, 0.45);
+
+            --brand: #6b8cff;
+            --brand-soft: rgba(107, 140, 255, 0.14);
+            --on-brand: #0b1020;
+            --danger: #f2706b;
+
             --accent-fitness: #2dd4bf;
-            --accent-work: #f59e0b;
-            --accent-family: #ec4899;
-            --accent-personal: #8b5cf6;
-            --border: #2a2a2a;
-            --shadow: rgba(0, 0, 0, 0.5);
+            --accent-work: #f5a623;
+            --accent-family: #f0609f;
+            --accent-personal: #9a82f7;
+
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --elev-1: 0 1px 2px rgba(0, 0, 0, 0.35);
+            --elev-2: 0 8px 24px rgba(0, 0, 0, 0.4);
+            color-scheme: dark;
         }
 
+        :root[data-theme="light"] {
+            --bg-primary: #f5f6f8;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f0f2f5;
+            --bg-hover: #e8ebf0;
+            --text-primary: #181b22;
+            --text-secondary: #566073;
+            --text-tertiary: #8a93a4;
+            --border: #e2e5eb;
+            --border-strong: #cfd4dd;
+            --shadow: rgba(16, 24, 40, 0.12);
+            --brand: #3b66f5;
+            --brand-soft: rgba(59, 102, 245, 0.10);
+            --on-brand: #ffffff;
+            --danger: #d64545;
+            --accent-fitness: #0d9488;
+            --accent-work: #d97706;
+            --accent-family: #db2777;
+            --accent-personal: #7c5ce6;
+            --elev-1: 0 1px 2px rgba(16, 24, 40, 0.08);
+            --elev-2: 0 8px 24px rgba(16, 24, 40, 0.14);
+            color-scheme: light;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root:not([data-theme="dark"]) {
+                --bg-primary: #f5f6f8;
+                --bg-secondary: #ffffff;
+                --bg-tertiary: #f0f2f5;
+                --bg-hover: #e8ebf0;
+                --text-primary: #181b22;
+                --text-secondary: #566073;
+                --text-tertiary: #8a93a4;
+                --border: #e2e5eb;
+                --border-strong: #cfd4dd;
+                --shadow: rgba(16, 24, 40, 0.12);
+                --brand: #3b66f5;
+                --brand-soft: rgba(59, 102, 245, 0.10);
+                --on-brand: #ffffff;
+                --danger: #d64545;
+                --accent-fitness: #0d9488;
+                --accent-work: #d97706;
+                --accent-family: #db2777;
+                --accent-personal: #7c5ce6;
+                --elev-1: 0 1px 2px rgba(16, 24, 40, 0.08);
+                --elev-2: 0 8px 24px rgba(16, 24, 40, 0.14);
+                color-scheme: light;
+            }
+        }
+
+        html { font-size: 15px; }
+
         body {
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
+            font-feature-settings: 'cv11', 'ss01';
+            -webkit-font-smoothing: antialiased;
+            font-variant-numeric: tabular-nums;
             background: var(--bg-primary);
             color: var(--text-primary);
             overflow-x: hidden;
@@ -66,7 +147,7 @@
         }
 
         .nav-title {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -140,7 +221,7 @@
         }
 
         .category-hours {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-tertiary);
         }
@@ -184,7 +265,7 @@
         }
 
         .trend-label {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.65rem;
             color: var(--text-tertiary);
             text-transform: uppercase;
@@ -215,7 +296,7 @@
         }
 
         .balance-label {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -237,7 +318,7 @@
         }
 
         .bar-percentage {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-secondary);
             opacity: 0;
@@ -302,7 +383,7 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-secondary);
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -326,7 +407,7 @@
             background: var(--bg-tertiary);
             border-radius: 6px;
             border: 1px solid var(--border);
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             display: none;
             align-items: center;
@@ -356,7 +437,7 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 1.25rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -384,7 +465,7 @@
         .time-label {
             background: var(--bg-secondary);
             padding: 1rem 0.75rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-tertiary);
             text-align: right;
@@ -595,7 +676,7 @@
             border: 1px solid var(--border);
             background: var(--bg-tertiary);
             color: var(--text-primary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 0.85rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -633,7 +714,7 @@
             padding: 0.5rem 1rem;
             background: var(--bg-tertiary);
             border-radius: 6px;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-secondary);
             border: 1px solid var(--border);
@@ -646,7 +727,7 @@
         }
 
         .event-time {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.65rem;
             opacity: 0.8;
             margin-bottom: 0.15rem;
@@ -692,7 +773,7 @@
         }
 
         .panel-title {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -708,7 +789,7 @@
             border: 1px dashed var(--border);
             border-radius: 6px;
             color: var(--text-secondary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 0.95rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -725,7 +806,7 @@
         }
 
         .keyboard-hint {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-tertiary);
             opacity: 0;
@@ -756,7 +837,7 @@
         }
 
         .stat-change {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--accent-fitness);
             margin-top: 0.5rem;
@@ -776,7 +857,7 @@
         }
 
         .reminder-time {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-secondary);
         }
@@ -908,7 +989,7 @@
         }
 
         .post-time {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-tertiary);
         }
@@ -938,7 +1019,7 @@
         .post-stats {
             display: flex;
             gap: 1rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-secondary);
             padding-top: 0.75rem;
@@ -958,7 +1039,7 @@
             border: none;
             border-radius: 8px;
             color: var(--bg-primary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 1rem;
             font-weight: 500;
             cursor: pointer;
@@ -1014,7 +1095,7 @@
         }
 
         .partner-status {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-tertiary);
         }
@@ -1030,7 +1111,7 @@
             border: 1px dashed var(--border);
             border-radius: 6px;
             color: var(--text-secondary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -1218,7 +1299,7 @@
         }
 
         .notification-time {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.7rem;
             color: var(--text-tertiary);
         }
@@ -1238,7 +1319,7 @@
             font-size: 0.8rem;
             cursor: pointer;
             transition: all 0.2s ease;
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
         }
 
         .notification-action-btn:hover {
@@ -1383,7 +1464,7 @@
         }
 
         .set-label {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.8rem;
             color: var(--text-tertiary);
         }
@@ -1394,7 +1475,7 @@
             border: 1px solid var(--border);
             border-radius: 4px;
             color: var(--text-primary);
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.9rem;
         }
 
@@ -1441,7 +1522,7 @@
             border: 1px dashed var(--border);
             border-radius: 8px;
             color: var(--text-secondary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -1481,7 +1562,7 @@
         }
 
         .workout-history-date {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-tertiary);
         }
@@ -1489,7 +1570,7 @@
         .workout-history-stats {
             display: flex;
             gap: 1rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.8rem;
             color: var(--text-secondary);
         }
@@ -1547,7 +1628,7 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.8rem;
         }
 
@@ -1664,7 +1745,7 @@
         }
 
         .habit-streak {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--text-tertiary);
             display: flex;
@@ -1704,7 +1785,7 @@
             border: 1px dashed var(--border);
             border-radius: 8px;
             color: var(--text-secondary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 0.9rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -2206,7 +2287,7 @@
 
         .form-label {
             display: block;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -2221,7 +2302,7 @@
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-primary);
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 1rem;
         }
 
@@ -2290,7 +2371,7 @@
             padding: 0.875rem;
             border-radius: 6px;
             border: none;
-            font-family: 'Crimson Pro', serif;
+            font-family: var(--font-ui);
             font-size: 1rem;
             cursor: pointer;
             transition: all 0.2s ease;
@@ -2356,7 +2437,7 @@
         }
 
         .template-days {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             color: var(--accent-fitness);
         }
@@ -2369,7 +2450,7 @@
         }
 
         .config-title {
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 0.1em;
@@ -2815,7 +2896,7 @@
                 cursor: pointer;
                 white-space: nowrap;
                 transition: all 0.2s ease;
-                font-family: 'Crimson Pro', serif;
+                font-family: var(--font-ui);
             }
 
             .mobile-quick-btn:active {
@@ -4445,7 +4526,7 @@
             border: 1px solid var(--border);
             border-radius: 4px;
             padding: 0.15rem 0.4rem;
-            font-family: 'JetBrains Mono', monospace;
+            font-family: var(--font-num);
             font-size: 0.85em;
         }
 
@@ -4547,7 +4628,7 @@
         .agenda-event.fitness { border-left-color: var(--accent-fitness); }
         .agenda-event.work { border-left-color: var(--accent-work); }
         .agenda-event.family { border-left-color: var(--accent-family); }
-        .agenda-time { font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; width: 4.6rem; flex-shrink: 0; }
+        .agenda-time { font-family: var(--font-num); font-size: 0.72rem; width: 4.6rem; flex-shrink: 0; }
         .agenda-time span { color: var(--text-tertiary); }
         .agenda-title { font-size: 0.95rem; }
         .agenda-repeat { color: var(--text-tertiary); font-size: 0.8rem; }
@@ -4560,7 +4641,7 @@
         .event-block.done .event-title::before, .agenda-event.done .agenda-title::before { content: '✓ '; font-weight: 700; }
 
         /* Garden + week in review */
-        .garden-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem; }
+        .garden-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 0.75rem; }
         .garden-plant { background: var(--bg-tertiary); border-radius: 10px; padding: 0.9rem 0.75rem; text-align: center; border-bottom: 3px solid var(--accent); }
         .garden-plant.thirsty { filter: saturate(0.4); }
         .garden-icon { font-size: 2.6rem; line-height: 1.1; }
@@ -4577,6 +4658,191 @@
         .review-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.05em; }
         .review-note { font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.6rem; }
         .review-record { font-size: 0.9rem; margin-top: 0.6rem; padding: 0.6rem 0.8rem; background: rgba(245, 158, 11, 0.12); border-radius: 8px; }
+
+        /* =====================================================================================
+           DESIGN LAYER: the professional look. Loaded last so it wins over the older rules above.
+           Rules: one sans font, one brand colour (--brand) for actions and "now", category colours only for
+           categories, 1px hairlines instead of shadows, 8/10/14px radii, tinted event cards with a colour bar.
+           All colours come from the tokens at the top, so light and dark both work.
+           ===================================================================================== */
+        /* Desktop three-column layout only: phones and tablets keep the single-column layout from the media queries above */
+        @media (min-width: 1025px) {
+            .app-container { grid-template-columns: 244px minmax(0, 1fr) 296px; gap: 0; background: var(--bg-primary); }
+        }
+
+        /* Sidebar */
+        .sidebar { padding: 1.1rem 0.9rem; box-shadow: none; border-right: 1px solid var(--border); }
+        .logo { display: flex; align-items: center; gap: 0.6rem; font-size: 1.1rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 1.4rem; padding: 0 0.4rem; }
+        .logo::before {
+            content: ''; width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+            background: conic-gradient(var(--accent-fitness) 0 25%, var(--accent-work) 0 50%, var(--accent-family) 0 75%, var(--accent-personal) 0);
+            -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+            mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+        }
+        .theme-toggle { margin-left: auto; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; transition: background 0.15s, color 0.15s; }
+        .theme-toggle:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .theme-toggle svg { width: 16px; height: 16px; }
+        .nav-section { margin-bottom: 1.4rem; }
+        .nav-title { font-family: var(--font-ui); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 0.35rem; padding: 0 0.6rem; }
+        .nav-item { padding: 0.5rem 0.65rem; margin-bottom: 2px; border-radius: 8px; font-size: 0.92rem; font-weight: 450; color: var(--text-secondary); transition: background 0.15s, color 0.15s; }
+        .nav-item:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+        .nav-item.active { background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+        .category-item.filtered { border-left: 0; background: var(--bg-tertiary); color: var(--text-primary); }
+        .category-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .category-hours { font-family: var(--font-ui); font-size: 0.72rem; font-weight: 500; color: var(--text-tertiary); background: var(--bg-tertiary); padding: 1px 8px; border-radius: 999px; }
+        .balance-indicator { margin-top: 1rem; padding: 1rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); }
+        .balance-indicator .balance-score { font-size: 2.1rem; font-weight: 600; letter-spacing: -0.03em; margin-bottom: 0.1rem; background: none; -webkit-text-fill-color: var(--text-primary); color: var(--text-primary); animation: none; }
+        .balance-label, .trend-label { font-family: var(--font-ui); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.07em; }
+        .sparkline { height: 34px; }
+        .sparkline-bar { background: var(--brand); opacity: 0.35; border-radius: 3px; }
+        .sparkline-bar.current { background: var(--brand); opacity: 1; }
+        .balance-bars { margin-top: 0.9rem; gap: 0.55rem; }
+        .bar-track { background: var(--bg-tertiary); height: 5px; border-radius: 3px; }
+        .bar-fill { border-radius: 3px; }
+        .bar-label { font-size: 0.74rem; width: 56px; }
+
+        /* Main area + header */
+        .main-calendar { padding: 1.1rem 1.6rem 2rem; }
+        .main-calendar > .calendar-header { padding: 0.25rem 0 0.9rem; margin-bottom: 0.4rem; }
+        .calendar-header { margin-bottom: 1rem; }
+        .calendar-title { font-size: 1.45rem; font-weight: 650; letter-spacing: -0.025em; }
+        .control-btn, .habit-bell-icon, .notification-bell {
+            height: 34px; min-width: 34px; padding: 0 0.7rem; border-radius: 8px; font-size: 0.95rem; font-weight: 500;
+            background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-primary);
+            display: inline-flex; align-items: center; justify-content: center; transition: background 0.15s, border-color 0.15s; box-shadow: var(--elev-1);
+        }
+        .control-btn:hover, .habit-bell-icon:hover, .notification-bell:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+        .habit-bell-icon, .notification-bell { position: relative; font-size: 1rem; }
+        .notification-badge { background: var(--brand) !important; color: var(--on-brand) !important; font-weight: 700; }
+        button[onclick="parseQuickAdd()"] { background: var(--brand) !important; color: var(--on-brand) !important; border-radius: 8px !important; height: 34px; padding: 0 1rem !important; font-weight: 600 !important; box-shadow: var(--elev-1); }
+        #quickAddInput { background: var(--bg-secondary) !important; border: 1px solid var(--border) !important; border-radius: 8px !important; padding: 0 0.9rem !important; height: 34px; color: var(--text-primary) !important; font-size: 0.88rem !important; box-shadow: var(--elev-1); }
+        #quickAddInput:focus, .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--brand) !important; box-shadow: 0 0 0 3px var(--brand-soft); }
+
+        /* Week grid */
+        .week-grid { background: var(--border); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--elev-1); gap: 1px; }
+        .week-grid .time-label { background: var(--bg-secondary); font-family: var(--font-ui); font-size: 0.68rem; font-weight: 500; color: var(--text-tertiary); padding: 0.3rem 0.6rem; border-right: 0; display: flex; justify-content: flex-end; align-items: flex-start; }
+        .week-grid .time-label:hover { background: var(--bg-tertiary); color: var(--text-secondary); }
+        .day-header { background: var(--bg-secondary); padding: 0.65rem 0 0.55rem; border-bottom: 0; }
+        .day-name { font-size: 0.66rem; font-weight: 600; letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 0.15rem; }
+        .day-date { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-size: 1.05rem; font-weight: 500; }
+        .day-header.today { background: var(--bg-secondary); }
+        .day-header.today .day-name { color: var(--brand); }
+        .day-header.today .day-date { background: var(--brand); color: var(--on-brand); font-weight: 650; }
+        .week-grid .day-cell { background: var(--bg-secondary); padding: 3px 4px; min-height: 52px; }
+        .week-grid .day-cell:hover { background: var(--bg-tertiary); }
+        .week-grid .day-cell.today { background: color-mix(in srgb, var(--brand) 4%, var(--bg-secondary)); }
+        .week-grid .day-cell.today:hover { background: color-mix(in srgb, var(--brand) 8%, var(--bg-secondary)); }
+        .day-cell::after { font-size: 1.4rem; font-weight: 300; }
+        .now-line { position: absolute; left: 0; right: 0; height: 2px; background: var(--danger); z-index: 4; pointer-events: none; }
+        .now-line::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+
+        /* Event cards: soft tint + colour bar, readable in both themes */
+        .event-block, .event-block.fitness, .event-block.work, .event-block.family, .event-block.personal {
+            background: color-mix(in srgb, var(--c, var(--accent-personal)) 15%, var(--bg-secondary));
+            border: 0; border-left: 3px solid var(--c, var(--accent-personal));
+            color: var(--text-primary); border-radius: 6px; padding: 0.3rem 0.5rem 0.35rem; margin-bottom: 3px;
+            font-weight: 500; box-shadow: none; min-height: 0;
+        }
+        .event-block.fitness { --c: var(--accent-fitness); }
+        .event-block.work { --c: var(--accent-work); }
+        .event-block.family { --c: var(--accent-family); }
+        .event-block.personal { --c: var(--accent-personal); }
+        .event-block:hover { background: color-mix(in srgb, var(--c, var(--accent-personal)) 24%, var(--bg-secondary)); transform: none; box-shadow: var(--elev-1); }
+        .event-block .event-time { font-size: 0.66rem; font-weight: 500; color: var(--text-secondary); opacity: 1; margin-bottom: 1px; }
+        .event-block .event-title { font-size: 0.8rem; font-weight: 600; line-height: 1.25; color: var(--text-primary); }
+        .event-block.done { opacity: 0.55; }
+        .event-action-btn { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); border-radius: 5px; }
+        .event-action-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+
+        /* Phone agenda */
+        .agenda-day { border-radius: var(--radius); box-shadow: var(--elev-1); }
+        .agenda-day.today { border-color: var(--brand); }
+        .agenda-day.today .agenda-day-date { color: var(--brand); }
+        .agenda-day-header { padding: 0.65rem 0.9rem; }
+        .agenda-event { background: color-mix(in srgb, var(--c, var(--accent-personal)) 8%, transparent); border-left: 3px solid var(--c, var(--accent-personal)); }
+        .agenda-event.fitness { --c: var(--accent-fitness); } .agenda-event.work { --c: var(--accent-work); }
+        .agenda-event.family { --c: var(--accent-family); } .agenda-event.personal { --c: var(--accent-personal); }
+        .agenda-time { font-family: var(--font-ui); font-weight: 500; }
+        .mobile-quick-add button { background: var(--brand); color: var(--on-brand); }
+
+        /* Right panel: quieter, grouped, compact */
+        .right-panel { padding: 1.1rem 1rem 2rem; box-shadow: none; border-left: 1px solid var(--border); }
+        .panel-section { margin-bottom: 1.6rem; }
+        .panel-title { font-family: var(--font-ui); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; color: var(--text-tertiary); margin-bottom: 0.6rem; padding: 0 0.2rem; }
+        .panel-section:has(> .panel-title + .quick-add-btn) { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; align-items: stretch; }
+        .panel-section:has(> .panel-title + .quick-add-btn) > .panel-title { grid-column: 1 / -1; margin-bottom: 0.15rem; }
+        .quick-add-btn, .quick-add-btn[style] {
+            width: 100%; margin: 0 !important; padding: 0.55rem 0.7rem !important; min-height: 38px;
+            background: var(--bg-secondary) !important; border: 1px solid var(--border) !important; border-radius: 8px !important;
+            color: var(--text-primary); font-size: 0.82rem; font-weight: 500; text-align: left; line-height: 1.25;
+            box-shadow: var(--elev-1); transition: background 0.15s, border-color 0.15s;
+        }
+        .quick-add-btn:hover { background: var(--bg-hover) !important; border-color: var(--border-strong) !important; }
+        .quick-add-btn .keyboard-hint { display: none; }
+        /* Only the first button of Quick Actions ("Add Event") is the primary action */
+        .right-panel > .panel-section:first-child > .quick-add-btn:first-of-type { grid-column: 1 / -1; background: var(--brand) !important; border-color: var(--brand) !important; color: var(--on-brand); font-weight: 600; justify-content: center; text-align: center; }
+        .right-panel > .panel-section:first-child > .quick-add-btn:first-of-type:hover { filter: brightness(1.08); }
+        #habitsList + .quick-add-btn { margin-top: 0.6rem !important; justify-content: center; text-align: center; }
+
+        /* Habits */
+        .habit-insights { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.6rem 0.8rem; margin-bottom: 0.7rem; }
+        .insight-stat { display: flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; font-size: 0.8rem; color: var(--text-secondary); padding: 0.2rem 0; }
+        .insight-value { color: var(--text-primary); font-weight: 600; font-size: 0.82rem; white-space: nowrap; }
+        .habit-category-section { margin-bottom: 0.5rem; }
+        .habit-category-header { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0.5rem; border-radius: 8px; font-size: 0.82rem; cursor: pointer; }
+        .habit-category-header:hover { background: var(--bg-tertiary); }
+        .habit-item { display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.6rem; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; margin-top: 0.3rem; font-size: 0.85rem; }
+        .habit-item input[type="checkbox"] { accent-color: var(--brand); width: 15px; height: 15px; flex-shrink: 0; }
+        .habit-item span.completed { text-decoration: line-through; color: var(--text-tertiary); }
+        .habit-item > span:first-of-type { flex: 1; min-width: 0; }
+        .delete-habit-btn { background: none; border: 0; color: var(--text-tertiary); cursor: pointer; font-size: 1rem; line-height: 1; }
+        .delete-habit-btn:hover { color: var(--danger); }
+        .stat-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.9rem 1rem; margin-bottom: 0.6rem; }
+        .stat-value { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; }
+        .stat-change { font-family: var(--font-ui); font-weight: 500; }
+        .reminder-item { background: var(--bg-primary); border-radius: 8px; border: 1px solid var(--border); border-left: 3px solid var(--brand); }
+
+        /* Modals, forms, buttons, toasts */
+        .modal-overlay { background: rgba(8, 10, 14, 0.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--elev-2); padding: 1.5rem 1.75rem; }
+        .modal-header { font-size: 1.15rem; font-weight: 650; letter-spacing: -0.015em; margin-bottom: 1.1rem; }
+        .form-label { font-size: 0.76rem; font-weight: 600; color: var(--text-secondary); letter-spacing: 0; text-transform: none; }
+        .form-input, .form-select, .form-textarea { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: var(--font-ui); font-size: 0.9rem; padding: 0.55rem 0.75rem; }
+        .btn { border-radius: 8px; font-family: var(--font-ui); font-weight: 550; font-size: 0.88rem; transition: background 0.15s, filter 0.15s; }
+        .btn-primary { background: var(--brand); color: var(--on-brand); border: 1px solid var(--brand); }
+        .btn-primary:hover { filter: brightness(1.08); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--bg-hover); }
+        .form-group { margin-bottom: 1rem; }
+        .modal-actions { margin-top: 1.25rem; }
+        .category-select { grid-template-columns: repeat(4, 1fr); gap: 0.45rem; }
+        .category-option { padding: 0.55rem 0.3rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; font-weight: 500; line-height: 1.2; background: var(--bg-primary); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
+        .category-option:hover { border-color: var(--border-strong); color: var(--text-primary); }
+        .category-option.selected { border-width: 1px; color: var(--text-primary); font-weight: 600; }
+        .category-option.selected.fitness { border-color: var(--accent-fitness); background: color-mix(in srgb, var(--accent-fitness) 14%, var(--bg-primary)); }
+        .category-option.selected.work { border-color: var(--accent-work); background: color-mix(in srgb, var(--accent-work) 14%, var(--bg-primary)); }
+        .category-option.selected.family { border-color: var(--accent-family); background: color-mix(in srgb, var(--accent-family) 14%, var(--bg-primary)); }
+        .category-option.selected.personal { border-color: var(--accent-personal); background: color-mix(in srgb, var(--accent-personal) 14%, var(--bg-primary)); }
+        .toast { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--elev-2); color: var(--text-primary); }
+        .toast-title { font-weight: 600; }
+        .toast-action-btn.primary { background: var(--brand); color: var(--on-brand); border-color: var(--brand); }
+
+        /* Goals, garden and review use the same surfaces */
+        .garden-plant, .review-record { border-radius: var(--radius); }
+        .garden-plant { border-bottom-width: 2px; }
+        .review-badge { background: var(--brand-soft); color: var(--brand); }
+        .review-headline { font-weight: 500; }
+        .review-big { font-weight: 600; letter-spacing: -0.03em; }
+        #gardenCard, #rewardsCard, #targetsCard { border-radius: var(--radius-lg) !important; box-shadow: var(--elev-1); }
+
+        datalist { display: none !important; } /* the title suggestions list was drawing as a stray 2px line in the modal */
+
+        /* Slide-in panels are parked off-screen; their shadows were bleeding in along the screen edge */
+        #habitTrackerPanel:not(.active), #notificationsPanel:not(.active), .mobile-drawer:not(.active) { box-shadow: none !important; }
+        #habitTrackerPanel, #notificationsPanel { background: var(--bg-secondary); border-color: var(--border); }
+
+        /* Scrollbars that don't shout */
+        * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
     </style>
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#0a0a0a">
@@ -4784,8 +5050,12 @@ Note: Service Workers only work over HTTPS or on localhost
 
         <!-- SIDEBAR -->
         <aside class="sidebar">
-            <div class="logo">Pace</div>
-            
+            <div class="logo">Pace
+                <button class="theme-toggle" onclick="toggleTheme()" title="Switch between light and dark" aria-label="Switch between light and dark theme">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg>
+                </button>
+            </div>
+
             <nav class="nav-section">
                 <div class="nav-title">Views</div>
                 <div class="nav-item active" onclick="switchView('week')">Week</div>
@@ -7901,7 +8171,7 @@ function parseQuickAddSimple() {
                                 <span style="font-size: 1rem;">${info.icon}</span>
                                 <span style="font-size: 0.85rem;">${info.name}</span>
                             </div>
-                            <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-tertiary);">${completed}/${total}</span>
+                            <span style="font-family: var(--font-num); font-size: 0.75rem; color: var(--text-tertiary);">${completed}/${total}</span>
                         </div>
                         <div style="background: var(--bg-tertiary); height: 6px; border-radius: 3px; overflow: hidden;">
                             <div style="background: ${info.color}; height: 100%; width: ${percentage}%; transition: width 0.3s ease;"></div>
@@ -8609,7 +8879,7 @@ function parseQuickAddSimple() {
             
             let html = `
                 <div style="margin-bottom: 1.5rem;">
-                    ${log.duration ? `<div style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Duration: ${log.duration} minutes</div>` : ''}
+                    ${log.duration ? `<div style="font-family: var(--font-num); font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">Duration: ${log.duration} minutes</div>` : ''}
                     ${log.notes ? `<div style="background: var(--bg-tertiary); padding: 1rem; border-radius: 6px; font-size: 0.9rem; line-height: 1.6; border-left: 3px solid var(--accent-fitness);">${log.notes}</div>` : ''}
                 </div>
             `;
@@ -8628,8 +8898,8 @@ function parseQuickAddSimple() {
                                 
                                 return `
                                     <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem; background: var(--bg-secondary); border-radius: 4px;">
-                                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-tertiary);">Set ${idx + 1}</span>
-                                        <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">
+                                        <span style="font-family: var(--font-num); font-size: 0.85rem; color: var(--text-tertiary);">Set ${idx + 1}</span>
+                                        <span style="font-family: var(--font-num); font-size: 0.9rem;">
                                             ${set.reps} reps × ${set.weight} lbs
                                             ${improved ? '<span style="color: var(--accent-fitness); margin-left: 0.5rem;">↑</span>' : ''}
                                             ${declined ? '<span style="color: #ef4444; margin-left: 0.5rem;">↓</span>' : ''}
@@ -9400,7 +9670,7 @@ function parseQuickAddSimple() {
                 </div>
 
                 <div style="margin-bottom: 1.5rem;">
-                    <h3 style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 1rem;">Scheduled Events (${categoryEvents.length})</h3>
+                    <h3 style="font-family: var(--font-num); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 1rem;">Scheduled Events (${categoryEvents.length})</h3>
             `;
 
             if (categoryEvents.length === 0) {
@@ -9434,7 +9704,7 @@ function parseQuickAddSimple() {
                                 <div style="font-size: 1rem; font-weight: 500;">${event.title}</div>
                                 ${event.streak ? `<div style="font-size: 0.85rem; opacity: 0.7;">🔥 ${event.streak}</div>` : ''}
                             </div>
-                            <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-secondary);">
+                            <div style="font-family: var(--font-num); font-size: 0.8rem; color: var(--text-secondary);">
                                 ${getDayName(event.day)} • ${formattedTime} - ${formattedEndTime} • ${event.duration} min
                             </div>
                         </div>
@@ -9447,7 +9717,7 @@ function parseQuickAddSimple() {
             // Add insights
             html += `
                 <div style="margin-top: 2rem;">
-                    <h3 style="font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 1rem;">Insights</h3>
+                    <h3 style="font-family: var(--font-num); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); margin-bottom: 1rem;">Insights</h3>
                     <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; font-size: 0.9rem; line-height: 1.8;">
             `;
 
@@ -9541,7 +9811,38 @@ function parseQuickAddSimple() {
             attachEventHandlers();
             renderUpcoming();
             updateBalanceDisplay(); // balance follows the week being viewed
+            placeNowLine();
         }
+
+        // A thin red line across today's column at the current time (week grid only)
+        function placeNowLine() {
+            document.querySelectorAll('.now-line').forEach(el => el.remove());
+            const now = new Date();
+            const cell = document.querySelector(`.week-grid .day-cell.today[data-hour="${now.getHours()}"]`);
+            if (!cell) return;
+            const line = document.createElement('div');
+            line.className = 'now-line';
+            line.style.top = (now.getMinutes() / 60 * 100) + '%';
+            cell.appendChild(line);
+        }
+        setInterval(() => { if (currentView === 'week') placeNowLine(); }, 60000);
+
+        // Light / dark: remembered, otherwise the system setting decides (see the tokens in the stylesheet)
+        function currentTheme() {
+            return document.documentElement.getAttribute('data-theme')
+                || (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        }
+        function applyThemeColor() {
+            const meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', currentTheme() === 'light' ? '#f5f6f8' : '#0e1014');
+        }
+        function toggleTheme() {
+            const next = currentTheme() === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', next);
+            try { localStorage.setItem('paceTheme', next); } catch (e) {}
+            applyThemeColor();
+        }
+        applyThemeColor();
 
         function attachEventHandlers() {
             // Re-attach bulk edit mode handlers
@@ -9702,6 +10003,12 @@ function parseQuickAddSimple() {
             return [first, last];
         }
 
+        // "7:00 – 8:00 AM" when both ends share AM/PM, else "11:30 AM – 12:15 PM"
+        function formatTimeRange(time, duration) {
+            const a = formatTime12Short(time), b = formatTime12Short(addMinutes(time, duration));
+            return a.slice(-2) === b.slice(-2) ? `${a.slice(0, -3)} – ${b}` : `${a} – ${b}`;
+        }
+
         function formatTime12Short(timeStr) {
             const [h, m] = timeStr.split(':').map(Number);
             return (h % 12 === 0 ? 12 : h % 12) + ':' + String(m).padStart(2, '0') + (h >= 12 ? ' PM' : ' AM');
@@ -9855,7 +10162,7 @@ function parseQuickAddSimple() {
                                              ondragstart="handleDragStart(event, ${event.id})"
                                              ondragend="handleDragEnd(event)"
                                              onclick="handleEventClick(event, ${event.id})">
-                                            <div class="event-time">${startTime} - ${endTime}</div>
+                                            <div class="event-time">${formatTimeRange(event.time, event.duration)}</div>
                                             <div class="event-title">${event.title}</div>
                                             ${event.streak ? `<div class="event-streak">🔥 ${event.streak}</div>` : ''}
                                             ${event.visibility && event.visibility !== 'private' ? `<div class="visibility-icon">${getVisibilityIcon(event.visibility)}</div>` : ''}
@@ -9867,7 +10174,7 @@ function parseQuickAddSimple() {
                                     `;
                                 });
 
-                                return `<div class="day-cell" 
+                                return `<div class="day-cell ${toDateKey(day) === todayKey ? 'today' : ''}"
                                             data-day="${dayOfWeek}" 
                                             data-hour="${hour}" 
                                             onclick="handleDayCellClick(event, ${dayOfWeek}, '${hour}:00')"
@@ -10067,7 +10374,7 @@ function parseQuickAddSimple() {
 
             // Day headers
             ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(day => { // Monday first, like the week view
-                html += `<div style="background: var(--bg-secondary); padding: 1rem; text-align: center; font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; border-bottom: 1px solid var(--border); font-family: 'JetBrains Mono', monospace;">${day}</div>`;
+                html += `<div style="background: var(--bg-secondary); padding: 1rem; text-align: center; font-size: 0.75rem; color: var(--text-tertiary); text-transform: uppercase; border-bottom: 1px solid var(--border); font-family: var(--font-num);">${day}</div>`;
             });
 
             // Empty cells before first day
@@ -10128,18 +10435,18 @@ function parseQuickAddSimple() {
                 if (allDayEvents.length > maxVisible) {
                     const remaining = allDayEvents.length - maxVisible;
                     eventsPreview += `
-                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem; font-family: 'JetBrains Mono', monospace;">
+                        <div style="font-size: 0.65rem; color: var(--text-tertiary); margin-top: 0.25rem; font-family: var(--font-num);">
                             +${remaining} more event${remaining > 1 ? 's' : ''}
                         </div>
                     `;
                 }
                 
                 html += `
-                    <div style="background: var(--bg-secondary); min-height: 100px; padding: 0.5rem; cursor: pointer; transition: background 0.2s ease; ${isToday ? 'border: 2px solid var(--accent-fitness);' : ''}" 
+                    <div style="background: var(--bg-secondary); min-height: 100px; padding: 0.5rem; cursor: pointer; transition: background 0.2s ease; ${isToday ? 'box-shadow: inset 0 0 0 2px var(--brand);' : ''}" 
                          onmouseover="this.style.background='var(--bg-tertiary)'" 
                          onmouseout="this.style.background='var(--bg-secondary)'"
                          onclick="currentDate.setDate(${day}); switchView('day')">
-                        <div style="font-size: 1.1rem; font-weight: ${isToday ? '600' : '400'}; color: ${isToday ? 'var(--accent-fitness)' : 'var(--text-primary)'}; margin-bottom: 0.5rem;">${day}</div>
+                        <div style="font-size: 1.1rem; font-weight: ${isToday ? '600' : '400'}; color: ${isToday ? 'var(--brand)' : 'var(--text-primary)'}; margin-bottom: 0.5rem;">${day}</div>
                         <div style="display: flex; flex-direction: column;">
                             ${eventsPreview}
                         </div>
@@ -10212,7 +10519,7 @@ function parseQuickAddSimple() {
                             
                             eventsHTML += `
                                 <div style="background: ${categoryColors[event.category]}; padding: 0.5rem; border-radius: 4px; color: var(--bg-primary); font-size: 0.85rem; margin-bottom: 0.5rem; position: relative;">
-                                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; opacity: 0.8;">${startTime} - ${endTime}</div>
+                                    <div style="font-family: var(--font-num); font-size: 0.7rem; opacity: 0.8;">${startTime} - ${endTime}</div>
                                     <div style="font-weight: 500; margin-top: 0.25rem;">${event.title} ${event.streak ? '🔥 ' + event.streak : ''}</div>
                                     <div style="position: absolute; top: 0.25rem; right: 0.25rem; display: flex; gap: 0.25rem;">
                                         <button onclick="event.stopPropagation(); editEvent(${event.id}); return false;" style="background: rgba(0,0,0,0.3); border: none; color: white; padding: 0.15rem 0.35rem; border-radius: 3px; cursor: pointer; font-size: 0.75rem;">✎</button>
@@ -10223,7 +10530,7 @@ function parseQuickAddSimple() {
                         });
                         
                         return `
-                            <div style="background: var(--bg-secondary); padding: 1rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; color: var(--text-tertiary); text-align: right; border-right: 1px solid var(--border);">
+                            <div style="background: var(--bg-secondary); padding: 1rem; font-family: var(--font-num); font-size: 0.75rem; color: var(--text-tertiary); text-align: right; border-right: 1px solid var(--border);">
                                 ${displayHour}:00 ${ampm}
                             </div>
                             <div style="background: var(--bg-secondary); min-height: 80px; padding: 0.5rem; cursor: pointer; transition: background 0.2s ease;" 
@@ -10262,7 +10569,7 @@ function parseQuickAddSimple() {
                         <div style="margin-bottom: 1.5rem;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                                 <span style="font-size: 0.9rem; color: var(--text-secondary);">Workouts logged</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${workoutsLogged}</span>
+                                <span style="font-family: var(--font-num); font-size: 0.9rem;">${workoutsLogged}</span>
                             </div>
                         </div>` : '';
                 return `
@@ -10274,7 +10581,7 @@ function parseQuickAddSimple() {
                         <div style="margin-bottom: 1.5rem;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                                 <span style="font-size: 0.9rem; color: var(--text-secondary);">Hours this week</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${formatHours(b.hours[cat])} / ${WEEKLY_TARGETS[cat]}h</span>
+                                <span style="font-family: var(--font-num); font-size: 0.9rem;">${formatHours(b.hours[cat])} / ${WEEKLY_TARGETS[cat]}h</span>
                             </div>
                             <div style="width: 100%; height: 8px; background: var(--bg-tertiary); border-radius: 4px; overflow: hidden;">
                                 <div style="width: ${b.percentages[cat]}%; height: 100%; background: var(--accent-${cat});"></div>
@@ -10283,7 +10590,7 @@ function parseQuickAddSimple() {
                         <div style="margin-bottom: 1.5rem;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
                                 <span style="font-size: 0.9rem; color: var(--text-secondary);">Events scheduled</span>
-                                <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">${count}</span>
+                                <span style="font-family: var(--font-num); font-size: 0.9rem;">${count}</span>
                             </div>
                         </div>${extra}
                         <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; border-left: 3px solid var(--accent-${cat});">
@@ -10670,7 +10977,9 @@ function parseQuickAddSimple() {
             const thisWeek = getWeekStart(new Date());
             const weeks = readJSON('paceWeeks', {});
             let changed = false;
-            for (let ws = new Date(start); ws < thisWeek; ws.setDate(ws.getDate() + 7)) {
+            // Compare date keys, not Date objects: getWeekStart keeps the time of day, so after noon the current
+            // week's Monday-at-noon was "before" now and the week still in progress got frozen as finished.
+            for (let ws = new Date(start); toDateKey(ws) < toDateKey(thisWeek); ws.setDate(ws.getDate() + 7)) {
                 const key = toDateKey(ws);
                 if (!weeks[key]) { weeks[key] = reviewFor(new Date(ws)); changed = true; }
             }

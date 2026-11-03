@@ -128,13 +128,14 @@ export const steps = [
       // two events in the same hour: earlier start first, whatever order they were added in
       scheduledEvents.push({ id: 6001, title: 'Late', category: 'work', day: 1, time: '07:45', duration: 15 }, { id: 6002, title: 'Early', category: 'work', day: 1, time: '07:15', duration: 15 });
       renderWeekView();
+      await new Promise(r => setTimeout(r, 500)); // let the entrance animation finish before measuring positions
       const cell = document.querySelector('.day-cell[data-day="1"][data-hour="7"]');
       order = [...cell.querySelectorAll('.event-title')].map(e => e.textContent.trim());
       need(order.join() === 'Early,Drop-off,Late', 'same-hour events not sorted by time: ' + order);
       // the second event in a busy hour must be fully visible, not squeezed under the first
       const blocks = [...cell.querySelectorAll('.event-block')];
       const cellBox = cell.getBoundingClientRect();
-      need(blocks.every(b => b.getBoundingClientRect().bottom <= cellBox.bottom + 1), 'events overflow their cell (clipped)');
+      need(blocks.every(b => b.getBoundingClientRect().bottom <= cellBox.bottom + 1), 'events overflow their cell (clipped): cell bottom ' + Math.round(cellBox.bottom) + ', blocks ' + blocks.map(b => b.textContent.trim().slice(0, 12) + '@' + Math.round(b.getBoundingClientRect().bottom)).join(' | ') + ', scrollH ' + cell.scrollHeight + ' vs ' + Math.round(cellBox.height));
       scheduledEvents = scheduledEvents.filter(e => e.id !== 6001 && e.id !== 6002);
     }
     currentDate = getWeekStart(new Date()); // a Monday: the workout is weekdays only
@@ -489,6 +490,55 @@ export const steps = [
     if (savedRewards === null) localStorage.removeItem('paceRewards'); else localStorage.setItem('paceRewards', savedRewards);
     scheduledEvents = saved; eventDone = savedDone; saveToLocalStorage(); switchView('week'); renderWeekView();
     return 'ok';
+  })()`, 300],
+  ['design: themes switch and persist, text stays readable (WCAG AA) in both', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('design: ' + msg); };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const savedEvents = JSON.parse(JSON.stringify(scheduledEvents)), savedTheme = localStorage.getItem('paceTheme');
+    const ctx = document.createElement('canvas').getContext('2d');
+    const rgb = css => { ctx.clearRect(0, 0, 1, 1); ctx.fillStyle = '#000'; ctx.fillStyle = css; ctx.fillRect(0, 0, 1, 1); const d = ctx.getImageData(0, 0, 1, 1).data; return [d[0], d[1], d[2]]; };
+    const lum = ([r, g, b]) => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); };
+    const contrast = (a, b) => { const [x, y] = [lum(rgb(a)), lum(rgb(b))].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+    const cats = ['fitness', 'work', 'family', 'personal'];
+    scheduledEvents = cats.map((c, i) => ({ id: i + 1, title: c, category: c, day: 3, time: '1' + i + ':00', duration: 60 }));
+    document.getElementById('welcomeModal')?.classList.remove('active');
+    currentDate = new Date(); switchView('week'); renderWeekView();
+    await sleep(300);
+    const report = {};
+    for (const theme of ['dark', 'light']) {
+      document.documentElement.setAttribute('data-theme', theme);
+      await sleep(50);
+      const probs = [];
+      document.querySelectorAll('.event-block').forEach(b => {
+        const t = b.querySelector('.event-title'), s = getComputedStyle(b);
+        const c1 = contrast(getComputedStyle(t).color, s.backgroundColor);
+        if (c1 < 4.5) probs.push('event title ' + b.className + ' ' + c1.toFixed(2));
+        const c2 = contrast(getComputedStyle(b.querySelector('.event-time')).color, s.backgroundColor);
+        if (c2 < 3.5) probs.push('event time ' + c2.toFixed(2));
+      });
+      const root = getComputedStyle(document.documentElement);
+      const brand = root.getPropertyValue('--brand').trim(), onBrand = root.getPropertyValue('--on-brand').trim();
+      if (contrast(onBrand, brand) < 4.5) probs.push('text on brand buttons ' + contrast(onBrand, brand).toFixed(2));
+      const bg = getComputedStyle(document.body).backgroundColor, tx = getComputedStyle(document.body).color;
+      if (contrast(tx, bg) < 7) probs.push('body text ' + contrast(tx, bg).toFixed(2));
+      const sec = root.getPropertyValue('--text-secondary').trim(), surface = root.getPropertyValue('--bg-secondary').trim();
+      if (contrast(sec, surface) < 4.5) probs.push('secondary text ' + contrast(sec, surface).toFixed(2));
+      need(probs.length === 0, theme + ' theme: ' + probs.join('; '));
+      report[theme] = bg;
+    }
+    need(report.dark !== report.light, 'dark and light backgrounds are the same');
+    document.documentElement.setAttribute('data-theme', 'dark'); localStorage.removeItem('paceTheme');
+    toggleTheme(); need(document.documentElement.getAttribute('data-theme') === 'light' && localStorage.getItem('paceTheme') === 'light', 'toggle did not switch to light');
+    toggleTheme(); need(document.documentElement.getAttribute('data-theme') === 'dark' && localStorage.getItem('paceTheme') === 'dark', 'toggle did not switch back');
+    need(!!document.querySelector('.theme-toggle'), 'no theme toggle button');
+    for (const theme of ['dark', 'light']) {
+      document.documentElement.setAttribute('data-theme', theme);
+      need(document.documentElement.scrollWidth <= innerWidth + 1, 'page scrolls sideways in ' + theme);
+    }
+    if (savedTheme === null) localStorage.removeItem('paceTheme'); else localStorage.setItem('paceTheme', savedTheme);
+    document.documentElement.removeAttribute('data-theme');
+    scheduledEvents = savedEvents; saveToLocalStorage(); renderCurrentView();
+    return JSON.stringify(report);
   })()`, 300],
   ['rewards: completion marker saved before reload',`(() => { eventDone['9999@2026-01-01'] = 'work'; saveToLocalStorage(); return 'set'; })()`],
   ['backup restore round trip', `(async () => {

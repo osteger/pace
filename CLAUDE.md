@@ -37,6 +37,12 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
 - Event form: one Repeat select (`eventRepeatMode`: once / weekly / daily). "Daily" creates 7 weekly events. Quick Add: "tomorrow"/"today"/bare weekday → one-off; "every monday"/"mondays"/"weekly" → weekly.
 - Date-dependent bugs hide on the day you test. When touching anything date-related, also test with a faked date (e.g. a Wednesday).
 
+- Design system (Nov 2026 revamp). Look and feel come from tokens at the top of the first `<style>` block plus a "DESIGN LAYER" at its end (loaded last so it wins):
+  - Colours only via tokens: `--bg-*`, `--text-*`, `--border*`, `--brand` (the one action colour), `--accent-*` (categories only), `--danger`, radii and `--elev-*`. Dark is default; `:root[data-theme="light"]` and a `prefers-color-scheme: light` block (the same values, written twice on purpose) provide light. A script in `<head>` applies the saved `paceTheme` before paint; `toggleTheme()` flips it. Never hard-code a colour: use a token, or it breaks one theme.
+  - Fonts: `--font-ui` / `--font-num` (Inter from Google Fonts, system sans as fallback, so it still looks right offline). Never write a font name inline.
+  - Event cards are a tint of the category colour (`color-mix`) with a 3px colour bar, text in `--text-primary`. The "now" line (`placeNowLine`) sits in today's current-hour cell.
+  - The 3-column desktop grid is inside `@media (min-width: 1025px)`: unscoped it overrides the phone layout (broke it once). The right panel's button grid uses `:has(> .panel-title + .quick-add-btn)` so the habits section isn't caught.
+  - Audit step `design: themes switch…` checks the toggle, WCAG AA contrast of event cards, buttons and text in both themes, and no sideways scroll.
 - Rewards (Nov 2026), all in one `// Rewards` block in the main script (before "Mobile menu functions"):
   - Messages live in `REWARD_LINES` at the top of that block; edit there. Tone rule: warm, never scolding, plants never die.
   - Completion is per date: `eventDone['<eventId>@<YYYY-MM-DD>'] = category` (localStorage `paceDone`). `markAsComplete(id)` uses `window.actionDate`, set by `handleEventClick` from the clicked column/day (`[data-day]`). The old per-event `streak` counter was removed (it ticked every week at once). Not in the JSON backup yet.
