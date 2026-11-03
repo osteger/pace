@@ -1,13 +1,14 @@
 // Pace Service Worker - Offline Support
 // Network first: online you always get the latest deployed version, offline the last cached copy.
 // (This used to be cache-first with no refresh, so once installed, updates never reached the user.)
-const CACHE_NAME = 'pace-v2';
+const CACHE_NAME = 'pace-v3';
 const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Install event - cache files

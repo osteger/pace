@@ -491,6 +491,47 @@ export const steps = [
     scheduledEvents = saved; eventDone = savedDone; saveToLocalStorage(); switchView('week'); renderWeekView();
     return 'ok';
   })()`, 300],
+  ['backup: moving to a new device keeps completions, rewards, targets and history', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('backup: ' + msg); };
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const keep = { events: JSON.parse(JSON.stringify(scheduledEvents)), done: { ...eventDone }, targets: { ...WEEKLY_TARGETS },
+      rewards: localStorage.getItem('paceRewards'), weeks: localStorage.getItem('paceWeeks'), start: localStorage.getItem('paceStart') };
+    // Known state to carry across
+    scheduledEvents = [{ id: 1, title: 'Gym', category: 'fitness', day: 1, time: '18:00', duration: 60, repeatEvery: 2, anchor: '2026-11-02' },
+                       { id: 2, title: 'Rent', category: 'personal', day: 1, time: '09:00', duration: 60, monthDay: 1 }];
+    eventDone = { '1@2026-11-02': 'fitness' };
+    WEEKLY_TARGETS.fitness = 7; localStorage.setItem('paceRewards', JSON.stringify([{ id: 5, name: 'Shoes', goal: 3, category: 'fitness', since: '2026-11-01', reached: false, claimed: false }]));
+    localStorage.setItem('paceWeeks', JSON.stringify({ '2026-10-26': { balanced: true, done: 4, planned: 5, byCat: { fitness: { done: 2 } }, rate: 80 } }));
+    localStorage.setItem('paceStart', JSON.stringify('2026-10-19'));
+    // Export (desktop path: anchor download) and capture the file
+    let blob = null; const origCreate = URL.createObjectURL, origClick = HTMLAnchorElement.prototype.click;
+    URL.createObjectURL = b => { blob = b; return origCreate.call(URL, b); };
+    HTMLAnchorElement.prototype.click = function () {};
+    try { enhanceExportImport().exportToJSON(); } finally { URL.createObjectURL = origCreate; HTMLAnchorElement.prototype.click = origClick; }
+    need(!!blob, 'export produced no file');
+    const text = await blob.text(), data = JSON.parse(text);
+    need(data.version === '1.1' && data.done['1@2026-11-02'] === 'fitness' && data.rewards[0].name === 'Shoes' && data.targets.fitness === 7 && data.weeks['2026-10-26'].balanced === true && data.start === '2026-10-19', 'export is missing data: ' + Object.keys(data).join());
+    need(data.scheduledEvents[0].repeatEvery === 2 && data.scheduledEvents[1].monthDay === 1, 'repeat details lost in export');
+    // Wipe, then import on the "new device"
+    scheduledEvents = []; eventDone = {}; WEEKLY_TARGETS.fitness = 12;
+    localStorage.removeItem('paceRewards'); localStorage.removeItem('paceWeeks'); localStorage.removeItem('paceStart');
+    enhanceExportImport().importFromJSON(new File([text], 'b.json'));
+    await sleep(800);
+    need(scheduledEvents.length === 2 && scheduledEvents[0].anchor === '2026-11-02', 'events not restored');
+    need(eventDone['1@2026-11-02'] === 'fitness', 'completions not restored');
+    need(WEEKLY_TARGETS.fitness === 7 && JSON.parse(localStorage.getItem('paceTargets')).fitness === 7, 'targets not restored');
+    need(getRewards()[0] && getRewards()[0].name === 'Shoes', 'rewards not restored');
+    need(JSON.parse(localStorage.getItem('paceWeeks'))['2026-10-26'].rate === 80 && JSON.parse(localStorage.getItem('paceStart')) === '2026-10-19', 'review history not restored');
+    // An old (1.0) backup must still load and must not wipe completions/rewards already on the device
+    enhanceExportImport().importFromJSON(new File([JSON.stringify({ version: '1.0', scheduledEvents: [], workouts: [], dailyHabits: [], partners: [] })], 'old.json'));
+    await sleep(600);
+    need(eventDone['1@2026-11-02'] === 'fitness' && getRewards().length === 1, 'an old backup wiped completions or rewards');
+    // put everything back
+    scheduledEvents = keep.events; eventDone = keep.done; Object.assign(WEEKLY_TARGETS, keep.targets); localStorage.setItem('paceTargets', JSON.stringify(keep.targets));
+    ['paceRewards', 'paceWeeks', 'paceStart'].forEach(k => { const v = keep[k.replace('pace', '').toLowerCase()]; if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); });
+    saveToLocalStorage(); renderCurrentView();
+    return 'ok';
+  })()`, 300],
   ['design: themes switch and persist, text stays readable (WCAG AA) in both', `(async () => {
     const need = (ok, msg) => { if (!ok) throw new Error('design: ' + msg); };
     const sleep = ms => new Promise(r => setTimeout(r, ms));

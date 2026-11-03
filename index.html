@@ -4845,9 +4845,12 @@
         * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
     </style>
     <!-- PWA Configuration -->
-    <meta name="theme-color" content="#0a0a0a">
+    <meta name="theme-color" content="#0e1014">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- "black": a solid black status bar above the app, so the clock never sits on top of the calendar and is
+         readable in both themes ("black-translucent" draws the page under it, which needs safe-area padding and
+         makes the white clock unreadable in light mode) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="Pace">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -12199,39 +12202,65 @@ function enhanceDragAndDrop() {
 // Enhancement 10: EXPORT/IMPORT - Backup, share, print
 
 function enhanceExportImport() {
+    // Save a file. On a phone an installed web app can't "download", so open the share sheet (Save to Files,
+    // AirDrop, Mail...) instead. Desktop just downloads. The anchor path has no await, so it runs synchronously.
+    async function saveFile(blob, filename) {
+        const file = new File([blob], filename, { type: blob.type });
+        if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: filename }); return true; }
+            catch (e) { if (e.name === 'AbortError') return false; }
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 4000);
+        return true;
+    }
+
+    // Everything you'd want on a new device: events, habits, workouts, plus completions, rewards, targets and review history
     function exportToJSON() {
         const data = {
-            version: '1.0',
+            version: '1.1',
             exportDate: new Date().toISOString(),
             scheduledEvents,
             workouts: workoutLogs,
             dailyHabits,
-            partners
+            partners,
+            done: eventDone,
+            rewards: getRewards(),
+            targets: { ...WEEKLY_TARGETS },
+            weeks: readJSON('paceWeeks', {}),
+            start: readJSON('paceStart', null)
         };
-        
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `pace-backup-${toDateKey(new Date())}.json`;
-        a.click();
-        localStorage.setItem('pace_last_export', new Date().toISOString());
 
-        showToast('Exported', 'Backup downloaded successfully', 'success');
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        saveFile(blob, `pace-backup-${toDateKey(new Date())}.json`).then(saved => {
+            if (!saved) return;
+            localStorage.setItem('pace_last_export', new Date().toISOString());
+            showToast('Exported', 'Backup saved. Open Import on your other device to load it.', 'success');
+        });
     }
-    
+
     function importFromJSON(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-                
+
                 if (confirm('Import will replace all current data. Continue?')) {
                     scheduledEvents = data.scheduledEvents || [];
                     workoutLogs = data.workouts || [];
                     dailyHabits = data.dailyHabits || [];
                     partners = data.partners || [];
-                    
+                    // Newer backups also carry these. Older ones don't have them, so leave what's here alone.
+                    if (data.done && typeof data.done === 'object') eventDone = data.done;
+                    if (Array.isArray(data.rewards)) saveRewards(data.rewards);
+                    if (data.targets && typeof data.targets === 'object') { writeJSON('paceTargets', data.targets); loadTargets(); }
+                    if (data.weeks && typeof data.weeks === 'object') writeJSON('paceWeeks', data.weeks);
+                    if (data.start) writeJSON('paceStart', data.start);
+
                     saveToLocalStorage();
                     renderCurrentView();
                     renderHabits();
