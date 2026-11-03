@@ -4843,6 +4843,15 @@
 
         /* Scrollbars that don't shout */
         * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+
+        /* Cloud sync */
+        .sync-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); margin-right: 0.5rem; vertical-align: middle; }
+        .sync-on .sync-dot { background: var(--brand); }
+        .sync-state { font-size: 0.85rem; color: var(--text-secondary); line-height: 1.55; margin-bottom: 1rem; }
+        .sync-error { color: var(--danger); font-size: 0.82rem; min-height: 1.2em; margin-top: 0.5rem; }
+        .sync-link { background: none; border: none; color: var(--text-secondary); font: inherit; font-size: 0.8rem; text-decoration: underline; cursor: pointer; padding: 0.4rem 0; }
+        .sync-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .sync-actions .btn { flex: 1 1 auto; }
     </style>
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#0e1014">
@@ -4966,6 +4975,13 @@ Note: Service Workers only work over HTTPS or on localhost
                         </div>
                         <span class="category-hours">0h</span>
                     </div>
+                </nav>
+
+                <nav class="nav-section">
+                    <div class="nav-title">Your data</div>
+                    <div class="nav-item sync-btn" onclick="closeMobileMenu(); openSyncModal()"><span><span class="sync-dot"></span><span class="sync-label">Sync devices</span></span></div>
+                    <div class="nav-item" onclick="closeMobileMenu(); const{exportToJSON}=enhanceExportImport();exportToJSON();">Export backup</div>
+                    <div class="nav-item" onclick="closeMobileMenu(); document.getElementById('importFile').click();">Import backup</div>
                 </nav>
 
                 <div class="balance-indicator">
@@ -5486,6 +5502,9 @@ Note: Service Workers only work over HTTPS or on localhost
             <div class="panel-section">
                 <div class="panel-title">Data Management</div>
 
+                <button class="quick-add-btn sync-btn" onclick="openSyncModal()">
+                    <span><span class="sync-dot"></span><span class="sync-label">Sync devices</span></span>
+                </button>
                 <button class="quick-add-btn" onclick="const{exportToJSON}=enhanceExportImport();exportToJSON();">
                     <span>Export</span>
                 </button>
@@ -6170,6 +6189,54 @@ Note: Service Workers only work over HTTPS or on localhost
 
             <div class="modal-actions">
                 <button class="btn btn-secondary" onclick="closeEventActionModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SYNC MODAL: one of three panels is shown (sign in / signed in / which copy to keep) -->
+    <div class="modal-overlay" id="syncModal">
+        <div class="modal">
+            <div class="modal-header">Sync between devices</div>
+
+            <div id="syncPanelSignedOut">
+                <div class="sync-state">Sign in on each device and your events, habits, rewards and garden follow you. Your data stays on this device too, so Pace still works offline.</div>
+                <form onsubmit="syncSubmit(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="syncEmail">Email</label>
+                        <input type="email" class="form-input" id="syncEmail" autocomplete="username" inputmode="email" autocapitalize="off" placeholder="you@example.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="syncPassword">Password</label>
+                        <input type="password" class="form-input" id="syncPassword" autocomplete="current-password" placeholder="At least 6 characters">
+                    </div>
+                    <div class="sync-actions">
+                        <button type="submit" class="btn btn-primary" id="syncSignInBtn">Sign in</button>
+                        <button type="button" class="btn btn-secondary" id="syncSignUpBtn" onclick="syncSignUpClicked()">Create account</button>
+                    </div>
+                    <button type="button" class="sync-link" onclick="syncForgot()">Forgot password?</button>
+                </form>
+            </div>
+
+            <div id="syncPanelSignedIn" style="display: none;">
+                <div class="sync-state"><span id="syncWho"></span><br><span id="syncDetail"></span></div>
+                <div class="sync-actions">
+                    <button class="btn btn-primary" onclick="syncNow()">Sync now</button>
+                    <button class="btn btn-secondary" onclick="syncSignOut()">Sign out</button>
+                </div>
+            </div>
+
+            <div id="syncPanelChoose" style="display: none;">
+                <div class="sync-state">This device and your account have different schedules. Which one should Pace keep? The other one is replaced.</div>
+                <div class="sync-actions">
+                    <button class="btn btn-primary" onclick="syncChoose('cloud')">Keep my account's</button>
+                    <button class="btn btn-secondary" onclick="syncChoose('device')">Keep this device's</button>
+                </div>
+            </div>
+
+            <div class="sync-error" id="syncError" role="alert"></div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSyncModal()">Close</button>
             </div>
         </div>
     </div>
@@ -7478,6 +7545,7 @@ function parseQuickAddSimple() {
             // Initialize notifications
             initializeNotifications();
             initRewards();
+            syncInit();
 
             // Initialize habit category progress
             updateHabitCategoryProgress();
@@ -7746,6 +7814,7 @@ function parseQuickAddSimple() {
             } catch (e) {
                 console.error('Save failed:', e);
             }
+            if (typeof syncSchedulePush === 'function') syncSchedulePush();
         }
 
         // Load data from localStorage
@@ -11152,6 +11221,311 @@ function parseQuickAddSimple() {
             }
         }
 
+
+        // ---- Cloud sync (Firebase) ----
+        // Your data always lives in this browser first; sync copies it to your account and back, so Pace still works offline.
+        // The Firebase scripts are downloaded only once you've signed in (or open the Sync dialog).
+        // This config is public by design: it names the project and grants nothing. Firestore rules decide who can read what
+        // (each account can only touch users/<its own uid>).
+        const FIREBASE_CONFIG = {
+            apiKey: 'AIzaSyDN0eUehePB7JDeahraClt4jobxlf4XAOU',
+            authDomain: 'pace-94049.firebaseapp.com',
+            projectId: 'pace-94049',
+            storageBucket: 'pace-94049.firebasestorage.app',
+            messagingSenderId: '21439617346',
+            appId: '1:21439617346:web:1957fdd9de4fde6c2790db'
+        };
+        const FIREBASE_VERSION = '10.12.2';
+        // Device-specific things (theme, sync bookkeeping) are left out on purpose
+        const SYNC_KEYS = ['paceEvents', 'paceWorkouts', 'paceHabits', 'pacePartners', 'paceDone', 'paceTargets',
+            'paceWeeks', 'paceStart', 'paceRewards', 'paceReviewSeen', 'paceDayClosed'];
+        // choose = waiting for "keep this device's or the account's?"; live = the first look at the cloud copy is done, so pushing is safe
+        const syncState = { fb: null, user: null, ready: false, connecting: null, unsubAuth: null, unsubDoc: null,
+            timer: null, pushing: false, again: false, status: 'off', detail: '', choose: false, live: false, remoteDoc: null, lastSynced: 0 };
+
+        function syncGet(key, fallback) { try { const v = localStorage.getItem(key); return v === null ? fallback : v; } catch (e) { return fallback; } }
+        function syncSet(key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+        function syncDeviceId() {
+            let id = syncGet('paceDevice', '');
+            if (!id) { id = Math.random().toString(36).slice(2) + Date.now().toString(36); syncSet('paceDevice', id); }
+            return id;
+        }
+        function syncPayload() {
+            const data = {};
+            SYNC_KEYS.forEach(k => { const v = syncGet(k, null); if (v !== null) data[k] = v; });
+            return data;
+        }
+        function syncHash(data) {
+            const s = JSON.stringify(SYNC_KEYS.map(k => data[k] ?? null));
+            let h = 5381;
+            for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+            return h + ':' + s.length;
+        }
+        // "Dirty" = this device differs from the last copy we sent or received. Computed, not flagged, so it can't get stuck.
+        function syncDirty() { return syncHash(syncPayload()) !== syncGet('paceSyncHash', ''); }
+        function syncHasLocalData() {
+            return !!(scheduledEvents.length || dailyHabits.length || workoutLogs.length || Object.keys(eventDone || {}).length);
+        }
+        function syncMarkClean(rev) { syncSet('paceSyncSeen', rev || ''); syncSet('paceSyncHash', syncHash(syncPayload())); }
+        function withTimeout(promise, ms) {
+            return Promise.race([promise, new Promise((_, reject) => setTimeout(() => reject(Object.assign(new Error('timeout'), { code: 'timeout' })), ms))]);
+        }
+
+        function syncBackend() { return window.PACE_SYNC_BACKEND || (syncState.fb = syncState.fb || firebaseBackend()); }
+        function firebaseBackend() {
+            let auth, db;
+            const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_VERSION + '/';
+            const load = src => new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = src; s.onload = resolve; s.onerror = () => reject(Object.assign(new Error('load failed'), { code: 'load' }));
+                document.head.appendChild(s);
+            });
+            return {
+                async init() {
+                    if (!window.firebase) {
+                        await load(base + 'firebase-app-compat.js');
+                        await Promise.all([load(base + 'firebase-auth-compat.js'), load(base + 'firebase-firestore-compat.js')]);
+                    }
+                    if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+                    auth = firebase.auth();
+                    db = firebase.firestore();
+                    try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+                },
+                onAuth: cb => auth.onAuthStateChanged(u => cb(u ? { uid: u.uid, email: u.email } : null)),
+                signIn: (email, pw) => auth.signInWithEmailAndPassword(email, pw),
+                signUp: (email, pw) => auth.createUserWithEmailAndPassword(email, pw),
+                signOut: () => auth.signOut(),
+                reset: email => auth.sendPasswordResetEmail(email),
+                listen: (uid, cb, onError) => db.collection('users').doc(uid).onSnapshot(snap => cb(snap.exists ? snap.data() : null, snap.metadata), onError),
+                write: (uid, doc) => db.collection('users').doc(uid).set(doc)
+            };
+        }
+
+        // ---- status text (button labels + dialog) ----
+        function syncSetStatus(status, detail) { syncState.status = status; syncState.detail = detail || ''; syncRenderStatus(); }
+        function syncLabel() {
+            const s = syncState;
+            if (!s.user) return syncGet('paceSyncOn', '') === '1' ? 'Sync: sign in again' : 'Sync devices';
+            if (s.choose) return 'Sync: pick a copy';
+            return { synced: 'Synced', syncing: 'Syncing…', offline: 'Sync: waiting for connection', error: 'Sync problem' }[s.status] || 'Synced';
+        }
+        function syncRenderStatus() {
+            document.querySelectorAll('.sync-label').forEach(el => { el.textContent = syncLabel(); });
+            document.querySelectorAll('.sync-btn').forEach(el => el.classList.toggle('sync-on', !!syncState.user && syncState.status === 'synced' && !syncState.choose));
+            syncRenderModal();
+        }
+        function syncRenderModal() {
+            const s = syncState;
+            const show = (id, on) => { const el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; };
+            show('syncPanelChoose', s.choose);
+            show('syncPanelSignedIn', !!s.user && !s.choose);
+            show('syncPanelSignedOut', !s.user);
+            const who = document.getElementById('syncWho'), detail = document.getElementById('syncDetail');
+            if (!who || !s.user) return;
+            who.textContent = 'Signed in as ' + s.user.email;
+            const when = s.lastSynced ? ' Last synced ' + new Date(s.lastSynced).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + '.' : '';
+            detail.textContent = s.status === 'offline' ? 'No connection right now. Changes upload when you are back online.'
+                : s.status === 'error' ? s.detail
+                : s.status === 'syncing' ? 'Syncing…' : 'Everything is saved to your account.' + when;
+        }
+        function syncShowError(msg) { const el = document.getElementById('syncError'); if (el) el.textContent = msg || ''; }
+        function syncErrorText(e) {
+            const code = (e && e.code) || '';
+            if (/email-already-in-use/.test(code)) return 'That email already has an account. Use Sign in instead.';
+            if (/wrong-password|invalid-credential|user-not-found|invalid-login/.test(code)) return 'That email or password is not right. New here? Tap Create account.';
+            if (/weak-password/.test(code)) return 'Pick a password with at least 6 characters.';
+            if (/invalid-email/.test(code)) return 'That does not look like an email address.';
+            if (/network|timeout|load/.test(code)) return 'Cannot reach the sync service. Check your connection and try again.';
+            if (/too-many-requests/.test(code)) return 'Too many tries. Wait a few minutes and try again.';
+            if (/operation-not-allowed/.test(code)) return 'Email sign-in is not switched on for this project in Firebase.';
+            return 'Something went wrong (' + (code || (e && e.message) || 'unknown') + ').';
+        }
+
+        // ---- dialog ----
+        async function openSyncModal() {
+            document.getElementById('syncModal').classList.add('active');
+            syncShowError('');
+            syncRenderModal();
+            if (!syncState.ready) await syncConnect();
+        }
+        function closeSyncModal() { document.getElementById('syncModal').classList.remove('active'); }
+
+        // ---- connection ----
+        function syncInit() {
+            window.addEventListener('online', () => {
+                if (syncGet('paceSyncOn', '') !== '1') return;
+                if (!syncState.ready) syncConnect(); else syncSchedulePush();
+            });
+            if (syncGet('paceSyncOn', '') === '1') { syncSetStatus('syncing'); syncConnect(); } else syncRenderStatus();
+        }
+        function syncConnect() {
+            if (syncState.connecting) return syncState.connecting;
+            syncState.connecting = (async () => {
+                try {
+                    const b = syncBackend();
+                    await b.init();
+                    if (syncState.unsubAuth) syncState.unsubAuth();
+                    syncState.ready = true;
+                    syncState.unsubAuth = b.onAuth(syncOnAuth);
+                } catch (e) {
+                    syncState.ready = false;
+                    syncSetStatus('offline');
+                    syncShowError(syncErrorText(e));
+                } finally { syncState.connecting = null; }
+            })();
+            return syncState.connecting;
+        }
+        function syncOnAuth(user) {
+            if (syncState.unsubDoc) { syncState.unsubDoc(); syncState.unsubDoc = null; }
+            syncState.user = user;
+            syncState.choose = false;
+            syncState.live = false;
+            if (!user) { syncRenderStatus(); return; }
+            syncSet('paceSyncOn', '1');
+            syncSetStatus('syncing');
+            syncState.unsubDoc = syncBackend().listen(user.uid, syncOnRemote, syncOnListenError);
+        }
+        function syncOnListenError(e) {
+            if (e && e.code === 'permission-denied') syncSetStatus('error', 'Firebase is refusing access. The Firestore rules still need to be published (see the setup steps).');
+            else syncSetStatus('offline');
+        }
+
+        // The cloud copy changed (or this is our first look at it)
+        function syncOnRemote(doc, meta) {
+            const s = syncState;
+            if (!s.user || (meta && meta.hasPendingWrites)) return; // echo of our own write
+            s.remoteDoc = doc;
+            const uid = s.user.uid;
+            const finish = () => { s.live = true; syncSchedulePush(); };
+            if (syncGet('paceSyncUid', '') !== uid) {            // first time this device meets this account
+                if (!doc) { syncSet('paceSyncUid', uid); finish(); syncPush(); return; }
+                if (!syncHasLocalData()) { syncSet('paceSyncUid', uid); syncApply(doc); return; }
+                if (syncHash(doc.data || {}) === syncHash(syncPayload())) { syncSet('paceSyncUid', uid); syncMarkClean(doc.rev); s.lastSynced = Date.now(); syncSetStatus('synced'); finish(); return; }
+                syncAskWhich();
+                return;
+            }
+            if (!doc) { finish(); syncPush(); return; }          // cloud copy was deleted: put ours back
+            if (doc.deviceId === syncDeviceId() || doc.rev === syncGet('paceSyncSeen', '')) {
+                if (!syncDirty()) { syncMarkClean(doc.rev); s.lastSynced = s.lastSynced || Date.now(); syncSetStatus('synced'); }
+                finish();
+                return;
+            }
+            if (syncDirty()) { syncAskWhich(); return; }          // changed here AND elsewhere
+            syncApply(doc, true);
+        }
+        function syncAskWhich() {
+            syncState.choose = true;
+            syncRenderStatus();
+            document.getElementById('syncModal').classList.add('active');
+        }
+        async function syncChoose(which) {
+            const s = syncState, doc = s.remoteDoc;
+            s.choose = false;
+            syncSet('paceSyncUid', s.user.uid);
+            if (which === 'cloud' && doc) syncApply(doc);
+            else { s.live = true; await syncPush(); }
+            syncRenderStatus();
+        }
+
+        // Replace local data with the cloud copy and redraw
+        function syncApply(doc, announce) {
+            const data = doc.data || {};
+            SYNC_KEYS.forEach(k => {
+                if (typeof data[k] === 'string') syncSet(k, data[k]);
+                else { try { localStorage.removeItem(k); } catch (e) {} }
+            });
+            loadFromLocalStorage();
+            renderCurrentView();
+            renderHabits();
+            updateBalanceDisplay();
+            updateHabitCategoryProgress();
+            syncMarkClean(doc.rev);
+            syncState.live = true;
+            syncState.lastSynced = Date.now();
+            syncSetStatus('synced');
+            if (announce) showToast('Updated', 'Pulled in changes from your other device', 'info');
+        }
+
+        // ---- sending ----
+        function syncSchedulePush() {
+            const s = syncState;
+            if (!s.user || !s.live || s.choose || !syncDirty()) return;
+            clearTimeout(s.timer);
+            s.timer = setTimeout(syncPush, 1500);
+            if (s.status !== 'syncing') syncSetStatus('syncing');
+        }
+        async function syncPush() {
+            const s = syncState;
+            if (!s.user || s.choose) return;
+            if (s.pushing) { s.again = true; return; }
+            clearTimeout(s.timer);
+            const data = syncPayload();
+            const rev = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            s.pushing = true;
+            try {
+                await withTimeout(syncBackend().write(s.user.uid, { data, deviceId: syncDeviceId(), rev, updatedAt: Date.now() }), 15000);
+                syncSet('paceSyncSeen', rev);
+                syncSet('paceSyncHash', syncHash(data));
+                s.lastSynced = Date.now();
+                syncSetStatus('synced');
+            } catch (e) {
+                if (e && e.code === 'permission-denied') syncSetStatus('error', 'Firebase is refusing access. The Firestore rules still need to be published (see the setup steps).');
+                else syncSetStatus('offline');
+            } finally {
+                s.pushing = false;
+                if (s.again) { s.again = false; syncSchedulePush(); }
+            }
+        }
+        async function syncNow() {
+            if (!syncState.user || syncState.choose || !syncState.live) return;
+            syncShowError('');
+            syncSetStatus('syncing');
+            await syncPush();
+        }
+
+        // ---- account actions ----
+        async function syncAuth(kind) {
+            const email = document.getElementById('syncEmail').value.trim();
+            const pw = document.getElementById('syncPassword').value;
+            if (!email || !pw) { syncShowError('Enter your email and password.'); return; }
+            syncShowError('');
+            const buttons = ['syncSignInBtn', 'syncSignUpBtn'].map(id => document.getElementById(id));
+            buttons.forEach(b => { b.disabled = true; });
+            try {
+                await syncConnect();
+                if (!syncState.ready) return;
+                const b = syncBackend();
+                await (kind === 'up' ? b.signUp(email, pw) : b.signIn(email, pw));
+                document.getElementById('syncPassword').value = '';
+            } catch (e) {
+                syncShowError(syncErrorText(e));
+            } finally { buttons.forEach(b => { b.disabled = false; }); }
+        }
+        function syncSubmit(event) { event.preventDefault(); syncAuth('in'); }
+        function syncSignUpClicked() { syncAuth('up'); }
+        async function syncForgot() {
+            const email = document.getElementById('syncEmail').value.trim();
+            if (!email) { syncShowError('Type your email above first, then tap Forgot password.'); return; }
+            try {
+                await syncConnect();
+                if (!syncState.ready) return;
+                await syncBackend().reset(email);
+                syncShowError('');
+                showToast('Check your email', 'A password reset link is on its way', 'info');
+            } catch (e) { syncShowError(syncErrorText(e)); }
+        }
+        async function syncSignOut() {
+            const s = syncState;
+            clearTimeout(s.timer);
+            if (s.user && s.live && syncDirty()) { try { await syncPush(); } catch (e) {} }
+            if (s.unsubDoc) { s.unsubDoc(); s.unsubDoc = null; }
+            try { await syncBackend().signOut(); } catch (e) {}
+            ['paceSyncOn', 'paceSyncUid', 'paceSyncSeen', 'paceSyncHash'].forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
+            s.user = null; s.live = false; s.choose = false; s.remoteDoc = null;
+            syncSetStatus('off');
+            closeSyncModal();
+            showToast('Signed out', 'Your schedule stays on this device', 'info');
+        }
 
         // Mobile menu functions
         function toggleMobileMenu() {

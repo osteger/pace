@@ -68,6 +68,14 @@ Owner: Onno. Live at https://osteger.github.io/pace/ (GitHub Pages, repo `ostege
   - `generateSmartNotifications()` is now an every-minute reminder: bell + toast (+ system notification if allowed) once per event per day, within 30 min of start. Only runs while Pace is open.
   - Toasts: max 3 on screen, unique ids. `updateNotificationCount` is null-safe because the bell only exists in week view.
 
+- Cloud sync (Nov 2026), one `// Cloud sync (Firebase)` block before "Mobile menu functions":
+  - Firebase project `pace-94049` (Auth email+password, Firestore). One doc per account, `users/<uid>` = `{ data: { <localStorage key>: <raw string> }, deviceId, rev, updatedAt }`. Keys synced are `SYNC_KEYS`; add any new data key there AND to the backup. Theme and sync bookkeeping (`paceSync*`, `paceDevice`) stay per device.
+  - The `FIREBASE_CONFIG` in `index.html` is public by design. Access is controlled by Firestore rules (`request.auth.uid == uid` on `users/{uid}`), which live in the Firebase console, not in this repo.
+  - localStorage stays the source of truth; the Firebase SDK (compat, from gstatic) is only loaded once signed in or when the Sync dialog opens, so offline and tests never need it.
+  - Whole-snapshot, last write wins. "Dirty" = hash of the synced keys differs from `paceSyncHash` (computed, never a flag). `saveToLocalStorage()` ends with `syncSchedulePush()`, which pushes 1.5s later. Nothing is pushed until the first look at the cloud copy (`syncState.live`), and a device that meets an account for the first time (`paceSyncUid`) uploads / downloads / asks "which copy?" depending on what each side has. Remote changes are recognised by `rev`, not clocks.
+  - Tests use `window.PACE_SYNC_BACKEND` (an in-memory fake), see the `sync:` audit step. It never touches the real project. Real sign-in is only checked by hand.
+  - Sync UI: button in the right panel's Data Management and the phone drawer ("Your data").
+
 ## Current state (Nov 2026)
 Usable day to day. Verified in headless Chrome at desktop and phone width, including after reloads:
 - Events: add/edit/delete through the form and Quick Add, notes, one-off vs weekly vs daily, week/month/day views.
@@ -81,7 +89,7 @@ Not verified: real-key AI calls, the deployed site, iOS Safari specifically.
 ## Known gaps / next work
 1. **AI batch commands**: proxy built and tested locally (Nov 2026) against a mocked Anthropic API and in `wrangler dev`. Not yet deployed and not yet run against a real key; `AI_PROXY_URL` is still null. Never put an API key in `index.html` — the site is public.
    - AI routing (`parseQuickAdd` → `batchPatterns`) matches `each` / `all` / `before|after each|all|every` / `every weekday|morning|evening|day` as whole words. Don't go back to substring checks: `'all '` matched "call mom", "football".
-2. Data lives only in this browser's localStorage: no sync between devices, and Safari can clear site data for sites not added to the Home Screen after a stretch without visits. Export a backup regularly; accounts (item 4) are the real fix.
+2. Data lives in each browser's localStorage and, once signed in (Cloud sync above), in the user's Firebase account. Not verified against the real Firebase yet (Authentication and the Firestore database still had to be switched on in the console). Safari can clear site data for sites not added to the Home Screen; the account copy covers that.
 3. Several features use `alert()`/`confirm()`; move to toasts/modals.
 4. Planned: user accounts + partner/family sharing (Firebase or Supabase). Sharing UI is already built but hidden (see layout notes).
 5. Reminders only fire while Pace is open in a tab; with the app closed they'd need a backend (push).

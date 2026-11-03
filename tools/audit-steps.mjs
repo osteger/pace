@@ -632,5 +632,91 @@ export const steps = [
   ['phone: FAB -> Add Event opens form that fits', `(() => { if (innerWidth > 768) return 'desktop, skipped'; document.getElementById('mobileFab').click(); const btn = [...document.querySelectorAll('.mobile-quick-btn')].find(b => b.textContent.includes('Add Event')); btn?.click(); const m = document.querySelector('#eventModal .modal'); const r = m.getBoundingClientRect(); const save = [...m.querySelectorAll('button')].find(b => b.textContent.includes('Save')); const out = JSON.stringify({ open: document.getElementById('eventModal').classList.contains('active'), modalWidth: Math.round(r.width), fitsWidth: r.left >= 0 && r.right <= innerWidth, saveReachable: !!save }); return out; })()`],
   ['phone: fill and save from the form', `(() => { if (innerWidth > 768) return 'desktop, skipped'; document.getElementById('eventTitle').value = 'Phone event'; saveEvent(); return JSON.stringify({ saved: scheduledEvents.some(e => e.title === 'Phone event'), stored: JSON.parse(localStorage.getItem('paceEvents')).some(e => e.title === 'Phone event') }); })()`],
   ['phone: resize (keyboard opening) does not reload', `(async () => { window.__marker = 'still-here'; document.getElementById('quickAddInput').value = 'typing...'; window.dispatchEvent(new Event('resize')); await new Promise(r => setTimeout(r, 700)); return JSON.stringify({ sameDocument: window.__marker === 'still-here', inputKept: document.getElementById('quickAddInput').value }); })()`, 200],
-  ['duplicate ids left', `JSON.stringify(Object.entries([...document.querySelectorAll('[id]')].reduce((a, el) => (a[el.id] = (a[el.id] || 0) + 1, a), {})).filter(([, n]) => n > 1))`],
+  ['sync: push, pull, conflict, offline, sign out (fake cloud)', `(async () => {
+    const need = (ok, msg) => { if (!ok) throw new Error('sync: ' + msg); };
+    const wait = ms => new Promise(r => setTimeout(r, ms));
+    // An in-memory stand-in for Firebase, so this never touches the real project
+    const cloud = { doc: null, authCb: null, snapCb: null, user: null, fail: false, writes: 0,
+      push(doc) { this.doc = doc; this.snapCb && this.snapCb(doc, { hasPendingWrites: false }); } };
+    window.PACE_SYNC_BACKEND = {
+      async init() {},
+      onAuth(cb) { cloud.authCb = cb; setTimeout(() => cb(cloud.user), 0); return () => {}; },
+      async signIn(email, pw) { if (pw !== 'goodpass') throw Object.assign(new Error('x'), { code: 'auth/invalid-credential' }); cloud.user = { uid: 'u1', email }; cloud.authCb(cloud.user); },
+      async signUp(email, pw) { cloud.user = { uid: 'u1', email }; cloud.authCb(cloud.user); },
+      async signOut() { cloud.user = null; cloud.authCb(null); },
+      async reset() {},
+      listen(uid, cb) { cloud.snapCb = cb; setTimeout(() => cb(cloud.doc, { hasPendingWrites: false }), 0); return () => { cloud.snapCb = null; }; },
+      async write(uid, doc) { if (cloud.fail) throw Object.assign(new Error('offline'), { code: 'unavailable' }); cloud.writes++; cloud.doc = doc; }
+    };
+    const signIn = async pw => {
+      document.getElementById('syncEmail').value = 'me@example.com'; document.getElementById('syncPassword').value = pw;
+      syncSubmit({ preventDefault() {} }); await wait(400);
+    };
+    ['paceSyncOn', 'paceSyncUid', 'paceSyncSeen', 'paceSyncHash'].forEach(k => localStorage.removeItem(k));
+    scheduledEvents = [{ id: 7001, title: 'Sync test run', category: 'fitness', day: 2, time: '06:30', duration: 45 }];
+    saveToLocalStorage();
+
+    // 1. wrong password shows a helpful message, nothing is signed in
+    await openSyncModal();
+    await signIn('nope');
+    need(!syncState.user && /not right/.test(document.getElementById('syncError').textContent), 'wrong password message: ' + document.getElementById('syncError').textContent);
+
+    // 2. first sign-in with an empty account uploads this device
+    await signIn('goodpass');
+    await wait(300);
+    need(cloud.doc && cloud.doc.deviceId === syncDeviceId(), 'first sign-in did not upload');
+    need(JSON.parse(cloud.doc.data.paceEvents).some(e => e.title === 'Sync test run'), 'uploaded events missing');
+    need(syncState.status === 'synced' && document.querySelector('.sync-label').textContent === 'Synced', 'status after upload: ' + syncState.status);
+
+    // 3. an edit on this device reaches the cloud on its own
+    const before = cloud.writes;
+    scheduledEvents.push({ id: 7002, title: 'Edited here', category: 'work', day: 3, time: '09:00', duration: 60 });
+    saveToLocalStorage();
+    await wait(2000);
+    need(cloud.writes === before + 1 && JSON.parse(cloud.doc.data.paceEvents).some(e => e.title === 'Edited here'), 'edit was not pushed');
+
+    // 4. a change from another device is pulled in and drawn, and does not bounce back
+    const events = JSON.parse(cloud.doc.data.paceEvents); events.push({ id: 7003, title: 'From my phone', category: 'family', day: 4, time: '18:00', duration: 60 });
+    cloud.push({ data: { ...cloud.doc.data, paceEvents: JSON.stringify(events) }, deviceId: 'other-device', rev: 'rev-other-1', updatedAt: Date.now() });
+    await wait(2200);
+    need(scheduledEvents.some(e => e.title === 'From my phone'), 'remote change not applied');
+    need(JSON.parse(localStorage.getItem('paceEvents')).some(e => e.title === 'From my phone'), 'remote change not stored');
+    need(cloud.doc.deviceId === 'other-device', 'pulled data bounced back to the cloud as our own write');
+
+    // 5. offline: the write fails, status says so, and it catches up when the connection returns
+    cloud.fail = true;
+    scheduledEvents.push({ id: 7004, title: 'Made offline', category: 'personal', day: 5, time: '20:00', duration: 30 });
+    saveToLocalStorage();
+    await wait(2000);
+    need(syncState.status === 'offline' && /waiting/i.test(document.querySelector('.sync-label').textContent), 'offline status: ' + syncState.status);
+    cloud.fail = false;
+    window.dispatchEvent(new Event('online'));
+    await wait(2000);
+    need(JSON.parse(cloud.doc.data.paceEvents).some(e => e.title === 'Made offline') && syncState.status === 'synced', 'did not catch up after reconnect');
+
+    // 6. sign out keeps your data here and forgets the account
+    await syncSignOut();
+    need(!syncState.user && scheduledEvents.some(e => e.title === 'Made offline') && !localStorage.getItem('paceSyncOn'), 'sign out');
+
+    // 7. signing in again on a device with different data asks which copy to keep, and obeys
+    cloud.doc = { data: { ...cloud.doc.data, paceEvents: JSON.stringify([{ id: 9001, title: 'Only in the cloud', category: 'work', day: 1, time: '10:00', duration: 60 }]) }, deviceId: 'other-device', rev: 'rev-other-2', updatedAt: Date.now() };
+    await openSyncModal();
+    await signIn('goodpass');
+    need(syncState.choose && document.getElementById('syncPanelChoose').style.display !== 'none', 'conflict panel not shown');
+    need(cloud.doc.deviceId === 'other-device', 'conflict overwrote the cloud before asking');
+    await syncChoose('cloud'); await wait(300);
+    need(scheduledEvents.length === 1 && scheduledEvents[0].title === 'Only in the cloud', 'cloud copy not applied: ' + JSON.stringify(scheduledEvents.map(e => e.title)));
+
+    // 8. an empty device (new phone) just receives the account's data without asking
+    await syncSignOut();
+    scheduledEvents = []; dailyHabits = []; workoutLogs = []; eventDone = {}; saveToLocalStorage();
+    await openSyncModal(); await signIn('goodpass'); await wait(300);
+    need(!syncState.choose && scheduledEvents.some(e => e.title === 'Only in the cloud'), 'new device did not receive the data');
+
+    // tidy up so later steps see a normal app
+    await syncSignOut();
+    delete window.PACE_SYNC_BACKEND; closeSyncModal();
+    return JSON.stringify({ ok: true, writes: cloud.writes });
+  })()`, 400],
+  ['duplicate ids left',`JSON.stringify(Object.entries([...document.querySelectorAll('[id]')].reduce((a, el) => (a[el.id] = (a[el.id] || 0) + 1, a), {})).filter(([, n]) => n > 1))`],
 ];
